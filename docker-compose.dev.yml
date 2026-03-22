@@ -1,0 +1,93 @@
+version: '3.8'
+
+# Configuración alternativa para DESARROLLO CON HOTRELOAD
+# Uso: docker-compose -f docker-compose.dev.yml up
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sellbuy-db-dev
+    environment:
+      POSTGRES_USER: sellbuy_user
+      POSTGRES_PASSWORD: sellbuy_password_dev
+      POSTGRES_DB: sellbuy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sellbuy_user -d sellbuy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sellbuy-dev-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sellbuy-backend-dev
+    environment:
+      DATABASE_URL: postgresql://sellbuy_user:sellbuy_password_dev@db:5432/sellbuy
+      SECRET_KEY: dev-key-not-secure-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      ENVIRONMENT: development
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "3000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    networks:
+      - sellbuy-dev-network
+    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: sellbuy-frontend-dev
+    environment:
+      VITE_API_URL: http://localhost:8000
+      NODE_ENV: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/index.html:/app/index.html
+      - /app/node_modules
+    networks:
+      - sellbuy-dev-network
+    command: ["sh", "-c", "npm run dev -- --host 0.0.0.0"]
+
+  adminer:
+    image: adminer:latest
+    container_name: sellbuy-adminer-dev
+    ports:
+      - "5000:8080"
+    depends_on:
+      - db
+    networks:
+      - sellbuy-dev-network
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+
+volumes:
+  postgres_data_dev:
+    driver: local
+
+networks:
+  sellbuy-dev-network:
+    driver: bridge

@@ -1,0 +1,35 @@
+# Dockerfile para desarrollo de React Frontend con Vite
+# Soporta hot reload automático
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependencias del sistema si es necesario
+RUN apk add --no-cache curl git
+
+# Copiar package files
+COPY package*.json ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY index.html ./
+COPY eslint.config.js ./
+
+# Instalar dependencias
+RUN npm install
+
+# Copiar código fuente
+COPY src ./src
+
+# Exponer puerto Vite
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000 || exit 1
+
+# Comando para desarrollo con hot reload
+# --host 0.0.0.0 hace que sea accesible desde fuera del contenedor
+CMD ["sh", "-c", "vite --host 0.0.0.0"]

@@ -1,0 +1,266 @@
+.PHONY: test test-verbose test-coverage test-fast test-watch test-single test-ui help
+
+# Color output
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+help: ## Mostrar esta ayuda
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║      Testing Commands for Sell & Buy Backend               ║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════╝$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(BLUE)Ejemplos:$(NC)"
+	@echo "  make test                 # Ejecutar todos los tests"
+	@echo "  make test-coverage        # Con reporte de cobertura"
+	@echo "  make test-watch           # Re-ejecuta al cambiar archivos"
+	@echo "  make test-single test=test_sales.py  # Test específico"
+	@echo ""
+
+# ============================================================================
+# TESTS BÁSICOS
+# ============================================================================
+
+test: ## Ejecutar todos los tests
+	@echo "$(BLUE)▶ Ejecutando todos los tests...$(NC)"
+	pytest
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-verbose: ## Tests con salida detallada
+	@echo "$(BLUE)▶ Ejecutando tests (verbose)...$(NC)"
+	pytest -vv
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-fast: ## Tests rápidos (paralelo)
+	@echo "$(BLUE)▶ Ejecutando tests en paralelo...$(NC)"
+	pytest -n auto
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-single: ## Ejecutar test específico (ej: make test-single test=test_sales.py)
+	@if [ -z "$(test)" ]; then \
+		echo "$(RED)✗ Error: especifica test=$(NC)nombre_archivo.py"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)▶ Ejecutando tests/api/$(test)...$(NC)"
+	pytest tests/api/$(test) -v
+	@echo "$(GREEN)✓ Test completado$(NC)"
+
+# ============================================================================
+# COBERTURA
+# ============================================================================
+
+test-coverage: ## Generar reporte de cobertura
+	@echo "$(BLUE)▶ Ejecutando tests con cobertura...$(NC)"
+	pytest --cov=app --cov-report=html --cov-report=term-missing
+	@echo "$(GREEN)✓ Reporte generado en htmlcov/index.html$(NC)"
+
+test-coverage-missing: ## Mostrar líneas no cubiertas
+	@echo "$(BLUE)▶ Líneas no cubiertas por tests...$(NC)"
+	pytest --cov=app --cov-report=term-missing:skip-covered
+	@echo ""
+
+test-coverage-html: test-coverage ## Generar HTML y abrir en navegador
+	@echo "$(BLUE)▶ Abriendo reporte HTML...$(NC)"
+	@if command -v xdg-open > /dev/null; then \
+		xdg-open htmlcov/index.html; \
+	elif command -v open > /dev/null; then \
+		open htmlcov/index.html; \
+	elif command -v start > /dev/null; then \
+		start htmlcov/index.html; \
+	fi
+
+# ============================================================================
+# FILTROS Y MARCADORES
+# ============================================================================
+
+test-auth: ## Tests de autenticación
+	@echo "$(BLUE)▶ Tests de autenticación...$(NC)"
+	pytest tests/api/test_auth.py -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-sales: ## Tests de ventas
+	@echo "$(BLUE)▶ Tests de ventas...$(NC)"
+	pytest tests/api/test_sales.py -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-articles: ## Tests de artículos
+	@echo "$(BLUE)▶ Tests de artículos...$(NC)"
+	pytest tests/api/test_articles.py -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-users: ## Tests de usuarios
+	@echo "$(BLUE)▶ Tests de usuarios...$(NC)"
+	pytest tests/api/test_users.py -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-integration: ## Tests de integración completos
+	@echo "$(BLUE)▶ Tests de integración...$(NC)"
+	pytest -m integration -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-unit: ## Solo tests unitarios
+	@echo "$(BLUE)▶ Tests unitarios...$(NC)"
+	pytest -m "not integration" -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-smoke: ## Tests básicos (rápidos)
+	@echo "$(BLUE)▶ Smoke tests...$(NC)"
+	pytest -m smoke -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-no-slow: ## Tests (excluyendo lentos)
+	@echo "$(BLUE)▶ Tests (sin tests lentos)...$(NC)"
+	pytest -m "not slow" -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+# ============================================================================
+# WATCH MODE
+# ============================================================================
+
+test-watch: ## Re-ejecutar tests al cambiar archivos
+	@echo "$(BLUE)▶ Iniciando watch mode...$(NC)"
+	@echo "$(YELLOW)  Tests se ejecutarán automáticamente al cambiar archivos$(NC)"
+	@echo "$(YELLOW)  Presiona Ctrl+C para salir$(NC)"
+	ptw
+	@echo "$(GREEN)✓ Watch mode finalizado$(NC)"
+
+test-watch-failed: ## Watch mode solo para tests fallidos
+	@echo "$(BLUE)▶ Watch mode (tests fallidos)...$(NC)"
+	pytest-watch --runner="pytest -x"
+	@echo "$(GREEN)✓ Watch mode finalizado$(NC)"
+
+# ============================================================================
+# DEBUGGING
+# ============================================================================
+
+test-debug: ## Tests con prints (debugging)
+	@echo "$(BLUE)▶ Ejecutando tests con salida de debugging...$(NC)"
+	pytest -s -vv
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-failed: ## Ejecutar solo tests fallidos
+	@echo "$(BLUE)▶ Ejecutando tests fallidos...$(NC)"
+	pytest --lf -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-failed-first: ## Ejecutar tests fallidos primero
+	@echo "$(BLUE)▶ Ejecutando tests (fallidos primero)...$(NC)"
+	pytest --ff -v
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+test-collection: ## Mostrar todos los tests sin ejecutar
+	@echo "$(BLUE)▶ Colección de tests...$(NC)"
+	pytest --collect-only
+	@echo ""
+
+test-pdb: ## Entrar en debugger (pdb) en errores
+	@echo "$(BLUE)▶ Tests con debugger (pdb)...$(NC)"
+	pytest --pdb
+	@echo "$(GREEN)✓ Tests completados$(NC)"
+
+# ============================================================================
+# LINT Y STYLE
+# ============================================================================
+
+test-lint: ## Verificar linting de tests
+	@echo "$(BLUE)▶ Linting de tests...$(NC)"
+	@if command -v flake8 > /dev/null; then \
+		flake8 tests/ --max-line-length=100 --ignore=E501,W503; \
+	else \
+		echo "$(YELLOW)⚠ flake8 no instalado. Instala con: pip install flake8$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Linting completado$(NC)"
+
+# ============================================================================
+# RESETS Y CLEANUP
+# ============================================================================
+
+test-clean: ## Limpiar caché y archivos temporales
+	@echo "$(BLUE)▶ Limpiando archivos temporales...$(NC)"
+	rm -rf .pytest_cache
+	rm -rf .coverage
+	rm -rf htmlcov/
+	rm -rf __pycache__
+	rm -rf tests/__pycache__
+	rm -rf tests/**/__pycache__
+	@echo "$(GREEN)✓ Caché limpiado$(NC)"
+
+test-reset: test-clean ## Reset completo (alias de test-clean)
+
+# ============================================================================
+# INSTALACIÓN Y SETUP
+# ============================================================================
+
+test-install: ## Instalar dependencias de testing
+	@echo "$(BLUE)▶ Instalando dependencias de testing...$(NC)"
+	pip install pytest pytest-asyncio pytest-cov pytest-xdist pytest-watch httpx faker
+	@echo "$(GREEN)✓ Dependencias instaladas$(NC)"
+
+test-setup: ## Setup completo para testing
+	@echo "$(BLUE)▶ Setup de testing...$(NC)"
+	@echo "  1. Instalando dependencias..."
+	pip install -r requirements.txt > /dev/null 2>&1
+	@echo "  2. Limpiando caché..."
+	make test-clean > /dev/null 2>&1
+	@echo "$(GREEN)✓ Setup completado$(NC)"
+	@echo ""
+	@echo "$(BLUE)Próximo paso:$(NC) make test"
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+test-ci: ## Simular ejecución CI (cobertura mínima 70%)
+	@echo "$(BLUE)▶ Ejecutando suite CI...$(NC)"
+	pytest --cov=app --cov-fail-under=70 --cov-report=term-missing
+	@echo "$(GREEN)✓ Suite CI aprobada$(NC)"
+
+test-ci-verbose: ## Suite CI con detalles
+	@echo "$(BLUE)▶ Suite CI (verbose)...$(NC)"
+	pytest -vv --cov=app --cov-fail-under=70 --cov-report=term-missing
+	@echo "$(GREEN)✓ Suite CI completada$(NC)"
+
+# ============================================================================
+# REPORTS
+# ============================================================================
+
+test-report: ## Generar reporte completo de tests
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║           TEST REPORT GENERATION                           ║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(BLUE)1. Ejecutando tests...$(NC)"
+	pytest --tb=short -v 2>&1 | tee test_report.txt
+	@echo ""
+	@echo "$(BLUE)2. Generando reporte de cobertura...$(NC)"
+	pytest --cov=app --cov-report=html --cov-report=term 2>&1 | tee -a test_report.txt
+	@echo ""
+	@echo "$(GREEN)✓ Reportes generados:$(NC)"
+	@echo "  - test_report.txt"
+	@echo "  - htmlcov/index.html"
+	@echo ""
+
+# ============================================================================
+# COMBINACIONES ÚTILES
+# ============================================================================
+
+test-all: ## Ejecutar todo (tests + cobertura + lint)
+	@echo "$(BLUE)╔══════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║           FULL TEST SUITE                                   ║$(NC)"
+	@echo "$(BLUE)╚══════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@make test-verbose
+	@echo ""
+	@make test-coverage-missing
+	@echo ""
+	@make test-lint
+	@echo ""
+	@echo "$(GREEN)✓ Suite completa finalizada$(NC)"
+
+test-quick: ## Tests rápidos con cobertura
+	@echo "$(BLUE)▶ Tests rápidos con cobertura...$(NC)"
+	pytest --cov=app --cov-report=term-missing -q
+	@echo "$(GREEN)✓ Tests completados$(NC)"
