@@ -37,6 +37,27 @@ def create_sale(
     db.add(db_sale)
     db.commit()
     db.refresh(db_sale)
+
+    # Update or create estimation with sale_id
+    estimation = db.query(models.Estimation).filter(
+        models.Estimation.purchase_id == sale.purchase_id
+    ).first()
+
+    if estimation:
+        # Update existing estimation with sale_id
+        estimation.sale_id = db_sale.id
+        db.commit()
+        db.refresh(estimation)
+    else:
+        # Create new estimation with sale_id if it doesn't exist
+        new_estimation = models.Estimation(
+            purchase_id=sale.purchase_id,
+            sale_id=db_sale.id,
+            estimated_profit=db_sale.amount - purchase.amount
+        )
+        db.add(new_estimation)
+        db.commit()
+
     return db_sale
 
 @router.get("/{sale_id}", response_model=schemas.SaleResponse)
@@ -65,10 +86,31 @@ def update_sale(
     if not db_sale:
         raise HTTPException(status_code=404, detail="Sale not found")
 
+    old_purchase_id = db_sale.purchase_id
+
     for key, value in sale.dict().items():
         setattr(db_sale, key, value)
     db.commit()
     db.refresh(db_sale)
+
+    # If purchase_id changed, update estimations
+    if old_purchase_id != db_sale.purchase_id:
+        # Clear sale_id from old estimation
+        old_estimation = db.query(models.Estimation).filter(
+            models.Estimation.purchase_id == old_purchase_id
+        ).first()
+        if old_estimation:
+            old_estimation.sale_id = None
+
+        # Set sale_id in new estimation
+        new_estimation = db.query(models.Estimation).filter(
+            models.Estimation.purchase_id == db_sale.purchase_id
+        ).first()
+        if new_estimation:
+            new_estimation.sale_id = db_sale.id
+
+        db.commit()
+
     return db_sale
 
 @router.delete("/{sale_id}")
@@ -82,6 +124,15 @@ def delete_sale(
     ).first()
     if not db_sale:
         raise HTTPException(status_code=404, detail="Sale not found")
+
+    # Clear sale_id from estimation
+    estimation = db.query(models.Estimation).filter(
+        models.Estimation.sale_id == sale_id
+    ).first()
+
+    if estimation:
+        estimation.sale_id = None
+        db.commit()
 
     db.delete(db_sale)
     db.commit()
