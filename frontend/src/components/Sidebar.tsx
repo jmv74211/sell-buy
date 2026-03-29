@@ -1,7 +1,10 @@
 import React from 'react'
-import { Menu, LogOut, Home, TrendingUp, Target } from 'lucide-react'
+import { Menu, LogOut, Home, TrendingUp, Target, Download } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useNavigate } from 'react-router-dom'
+import { purchaseService } from '@/services/purchases'
+import { saleService } from '@/services/sales'
+import { estimationService } from '@/services/estimations'
 import clsx from 'clsx'
 
 export function Sidebar() {
@@ -12,6 +15,35 @@ export function Sidebar() {
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
+  }
+
+  const handleExportData = async () => {
+    try {
+      const purchases = await purchaseService.getAll()
+      const sales = await saleService.getAll()
+      const estimations = await estimationService.getAll()
+
+      const backupData = {
+        exportDate: new Date().toISOString(),
+        purchases,
+        sales,
+        estimations,
+      }
+
+      const jsonString = JSON.stringify(backupData, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `sellbuy_backup_${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      alert('Error al exportar los datos')
+    }
   }
 
   const menuItems = [
@@ -60,6 +92,14 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
+
+        <button
+          onClick={handleExportData}
+          className="absolute bottom-20 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-400 hover:bg-blue-300 transition-colors w-12 justify-center lg:w-auto"
+        >
+          <Download size={20} />
+          <span className="hidden lg:inline">Exportar datos</span>
+        </button>
 
         <button
           onClick={handleLogout}
