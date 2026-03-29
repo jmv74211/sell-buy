@@ -149,7 +149,7 @@ export function SalesPage() {
               </thead>
               <tbody>
                 {sales.length > 0 ? (
-                  sales.map((sale) => (
+                  [...sales].sort((a, b) => b.id - a.id).map((sale) => (
                     <tr key={sale.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{sale.purchase_id}</td>
                       <td className="px-6 py-4">{getPurchaseName(sale.purchase_id)}</td>

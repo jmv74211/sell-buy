@@ -330,7 +330,7 @@ export function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {purchases.map((purchase) => {
+                    {[...purchases].sort((a, b) => b.id - a.id).map((purchase) => {
                       const estimation = estimations.find(
                         (e) => e.purchase_id === purchase.id
                       )

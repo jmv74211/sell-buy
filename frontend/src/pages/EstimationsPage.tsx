@@ -172,7 +172,7 @@ export function EstimationsPage() {
               </thead>
               <tbody>
                 {estimations.length > 0 ? (
-                  estimations.map((estimation) => {
+                  [...estimations].sort((a, b) => b.id - a.id).map((estimation) => {
                     const actualProfit = calculateActualProfit(
                       estimation.purchase_id,
                       estimation.sale_id
