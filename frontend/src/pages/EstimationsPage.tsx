@@ -43,14 +43,14 @@ export function EstimationsPage() {
   const getPurchaseName = (purchaseId: number) => {
     const purchase = purchases.find((p) => p.id === purchaseId)
     return purchase
-      ? `${purchase.article_name} - $${purchase.amount.toFixed(2)}`
+      ? `${purchase.article_name} - ${purchase.amount.toFixed(2)}€`
       : 'Desconocido'
   }
 
   const getSaleName = (saleId: number | null) => {
     if (!saleId) return 'No realizada'
     const sale = sales.find((s) => s.id === saleId)
-    return sale ? `$${sale.amount.toFixed(2)}` : 'Desconocido'
+      return sale ? `${sale.amount.toFixed(2)}€` : 'Desconocido'
   }
 
   const getPurchaseAmount = (purchaseId: number) => {
@@ -197,7 +197,7 @@ export function EstimationsPage() {
                               actualProfit >= 0 ? 'text-green-600' : 'text-red-600'
                             }`}
                           >
-                            {estimation.sale_id ? `$${actualProfit.toFixed(2)}` : 'Pendiente'}
+                            {estimation.sale_id ? `${actualProfit.toFixed(2)}€` : 'Pendiente'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -207,7 +207,7 @@ export function EstimationsPage() {
                                 difference >= 0 ? 'text-green-600' : 'text-red-600'
                               }`}
                             >
-                              ${difference.toFixed(2)}
+                              ${difference.toFixed(2)}€
                             </span>
                           ) : (
                             <span className="text-gray-400">-</span>
@@ -261,7 +261,7 @@ export function EstimationsPage() {
                 <option value="">Selecciona una compra</option>
                 {purchases.map((purchase) => (
                   <option key={purchase.id} value={purchase.id}>
-                    {purchase.article_name} - ${purchase.amount.toFixed(2)}
+                    {purchase.article_name} - {purchase.amount.toFixed(2)}€
                   </option>
                 ))}
               </select>
@@ -283,7 +283,7 @@ export function EstimationsPage() {
                 <option value="">Sin venta asociada</option>
                 {sales.map((sale) => (
                   <option key={sale.id} value={sale.id}>
-                    Venta #{sale.id} - ${sale.amount.toFixed(2)}
+                    Venta #{sale.id} - {sale.amount.toFixed(2)}€
                   </option>
                 ))}
               </select>

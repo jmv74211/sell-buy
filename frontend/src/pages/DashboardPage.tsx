@@ -107,19 +107,19 @@ export function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard
                 title="Total Compras"
-                value={`$${stats.total_purchases.toFixed(2)}`}
+                value={`${stats.total_purchases.toFixed(2)}€`}
                 icon={<DollarSign size={24} />}
                 color="blue"
               />
               <StatCard
                 title="Total Ventas"
-                value={`$${stats.total_sales.toFixed(2)}`}
+                value={`${stats.total_sales.toFixed(2)}€`}
                 icon={<TrendingUp size={24} />}
                 color="green"
               />
               <StatCard
                 title="Ganancia Total"
-                value={`$${stats.total_profit.toFixed(2)}`}
+                value={`${stats.total_profit.toFixed(2)}€`}
                 icon={<Activity size={24} />}
                 color={stats.total_profit >= 0 ? 'green' : 'red'}
               />
@@ -135,13 +135,13 @@ export function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <StatCard
                 title="Ganancia Estimada"
-                value={`$${estimationStats.totalEstimated.toFixed(2)}`}
+                value={`${estimationStats.totalEstimated.toFixed(2)}€`}
                 icon={<Target size={24} />}
                 color="blue"
               />
               <StatCard
                 title="Ganancia Real vs Estimada"
-                value={`${estimationStats.difference >= 0 ? '+' : ''}$${estimationStats.difference.toFixed(2)}`}
+                value={`${estimationStats.difference >= 0 ? '+' : ''}${estimationStats.difference.toFixed(2)}€`}
                 icon={<TrendingUp size={24} />}
                 color={estimationStats.difference >= 0 ? 'green' : 'red'}
               />

@@ -129,7 +129,7 @@ export function PurchasesPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Monto</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Precio</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
                 </tr>
               </thead>
@@ -141,7 +141,7 @@ export function PurchasesPage() {
                       <td className="px-6 py-4 text-gray-600">
                         {formatDate(purchase.purchase_date)}
                       </td>
-                      <td className="px-6 py-4">${purchase.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4">{purchase.amount.toFixed(2)}€</td>
                       <td className="px-6 py-4 flex gap-2">
                         <button
                           onClick={() => handleEdit(purchase)}
@@ -202,7 +202,7 @@ export function PurchasesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Monto</label>
+              <label className="block text-sm font-medium mb-1">Precio</label>
               <input
                 type="number"
                 step="0.01"
