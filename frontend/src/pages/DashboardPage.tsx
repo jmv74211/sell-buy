@@ -1,5 +1,5 @@
 import React from 'react'
-import { DollarSign, Package, TrendingUp, Activity, Target } from 'lucide-react'
+import { DollarSign, Package, TrendingUp, Activity, Wallet, TrendingDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
 import { analyticsService } from '@/services/analytics'
@@ -32,6 +32,13 @@ export function DashboardPage() {
     totalActual: 0,
     difference: 0,
     estimationCount: 0,
+  })
+  const [customStats, setCustomStats] = React.useState({
+    totalSpent: 0,
+    recoveredEstimated: 0,
+    totalExpectedProfit: 0,
+    totalEarned: 0,
+    totalBalance: 0,
   })
 
   React.useEffect(() => {
@@ -78,6 +85,35 @@ export function DashboardPage() {
           difference: totalActual - totalEstimated,
           estimationCount: estimationsData.filter((e) => e.sale_id).length,
         })
+
+        // Calculate custom statistics
+        const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
+
+        const estimationsWithoutSale = estimationsData.filter((e) => !e.sale_id)
+        const recoveredEstimated = estimationsWithoutSale.reduce((sum, e) => sum + e.estimated_profit, 0)
+
+        const totalExpectedProfit = estimationsData.reduce((sum, e) => sum + e.estimated_profit, 0)
+
+        let totalEarned = 0
+        estimationsData.forEach((est) => {
+          if (est.sale_id) {
+            const purchase = purchasesData.find((p) => p.id === est.purchase_id)
+            const sale = salesData.find((s) => s.id === est.sale_id)
+            if (purchase && sale) {
+              totalEarned += sale.amount - purchase.amount
+            }
+          }
+        })
+
+        const totalBalance = recoveredEstimated - totalSpent + totalEarned
+
+        setCustomStats({
+          totalSpent,
+          recoveredEstimated,
+          totalExpectedProfit,
+          totalEarned,
+          totalBalance,
+        })
       } catch (error) {
         console.error('Error loading analytics:', error)
       } finally {
@@ -104,46 +140,36 @@ export function DashboardPage() {
         ) : stats ? (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <StatCard
-                title="Total Compras"
-                value={`${stats.total_purchases.toFixed(2)}€`}
-                icon={<DollarSign size={24} />}
-                color="blue"
+                title="Total Gastado"
+                value={`${customStats.totalSpent.toFixed(2)}€`}
+                icon={<TrendingDown size={24} />}
+                color="red"
               />
               <StatCard
-                title="Total Ventas"
-                value={`${stats.total_sales.toFixed(2)}€`}
-                icon={<TrendingUp size={24} />}
-                color="green"
+                title="Saldo Recuperado Estimado"
+                value={`${customStats.recoveredEstimated.toFixed(2)}€`}
+                icon={<Wallet size={24} />}
+                color="yellow"
               />
               <StatCard
-                title="Ganancia Total"
-                value={`${stats.total_profit.toFixed(2)}€`}
-                icon={<Activity size={24} />}
-                color={stats.total_profit >= 0 ? 'green' : 'red'}
-              />
-              <StatCard
-                title="Margen de Ganancia"
-                value={`${stats.profit_margin.toFixed(1)}%`}
+                title="Total Esperado Ganar"
+                value={`${customStats.totalExpectedProfit.toFixed(2)}€`}
                 icon={<Package size={24} />}
-                color="purple"
-              />
-            </div>
-
-            {/* Estimation Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <StatCard
-                title="Ganancia Estimada"
-                value={`${estimationStats.totalEstimated.toFixed(2)}€`}
-                icon={<Target size={24} />}
                 color="blue"
               />
               <StatCard
-                title="Ganancia Real vs Estimada"
-                value={`${estimationStats.difference >= 0 ? '+' : ''}${estimationStats.difference.toFixed(2)}€`}
+                title="Total Ganado"
+                value={`${customStats.totalEarned.toFixed(2)}€`}
                 icon={<TrendingUp size={24} />}
-                color={estimationStats.difference >= 0 ? 'green' : 'red'}
+                color={customStats.totalEarned >= 0 ? 'green' : 'red'}
+              />
+              <StatCard
+                title="Saldo Total"
+                value={`${customStats.totalBalance.toFixed(2)}€`}
+                icon={<Activity size={24} />}
+                color={customStats.totalBalance >= 0 ? 'green' : 'red'}
               />
             </div>
 
@@ -197,12 +223,6 @@ export function DashboardPage() {
                       {stats.sale_count}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <span className="text-gray-600">Estimaciones Realizadas</span>
-                    <span className="font-bold text-2xl text-purple-600">
-                      {estimationStats.estimationCount}
-                    </span>
-                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Ganancia Real</span>
                     <span
@@ -212,7 +232,7 @@ export function DashboardPage() {
                           : 'text-red-600'
                       }`}
                     >
-                      ${estimationStats.totalActual.toFixed(2)}
+                      {estimationStats.totalActual.toFixed(2)}€
                     </span>
                   </div>
                 </div>
