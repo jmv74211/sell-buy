@@ -43,12 +43,16 @@ export function DashboardPage() {
     totalBalance: 0,
   })
 
-  const getRowBackgroundColor = (purchase: Purchase, estimation: Estimation | undefined) => {
-    if (estimation?.sale_id) {
+  const getRowBackgroundColor = (sale: Sale | null, estimation: Estimation | undefined) => {
+    // Verde: Si tiene venta realizada (precio de venta)
+    if (sale) {
       return 'bg-green-100'
-    } else if (estimation) {
+    }
+    // Amarillo: Si NO tiene venta pero SÍ tiene estimación con ganancia > 0
+    if (estimation && estimation.estimated_profit > 0) {
       return 'bg-yellow-100'
     }
+    // Blanco: Sin estimación o estimación con ganancia <= 0
     return 'bg-white'
   }
 
@@ -354,7 +358,7 @@ export function DashboardPage() {
                         <tr
                           key={purchase.id}
                           className={`border-b ${getRowBackgroundColor(
-                            purchase,
+                            sale,
                             estimation
                           )} hover:bg-opacity-75 transition-colors`}
                         >
