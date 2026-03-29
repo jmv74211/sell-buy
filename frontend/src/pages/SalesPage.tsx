@@ -4,12 +4,14 @@ import { Modal } from '@/components/Modal'
 import { Plus, Edit2, Trash2 } from 'lucide-react'
 import { saleService } from '@/services/sales'
 import { purchaseService } from '@/services/purchases'
-import type { Sale, Purchase } from '@/types/api'
+import { estimationService } from '@/services/estimations'
+import type { Sale, Purchase, Estimation } from '@/types/api'
 import { formatDate } from '@/utils/date'
 
 export function SalesPage() {
   const [sales, setSales] = React.useState<Sale[]>([])
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
+  const [estimations, setEstimations] = React.useState<Estimation[]>([])
   const [loading, setLoading] = React.useState(true)
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
@@ -27,8 +29,10 @@ export function SalesPage() {
     try {
       const salesData = await saleService.getAll()
       const purchasesData = await purchaseService.getAll()
+      const estimationsData = await estimationService.getAll()
       setSales(salesData)
       setPurchases(purchasesData)
+      setEstimations(estimationsData)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -36,8 +40,21 @@ export function SalesPage() {
     }
   }
 
+  const getAvailablePurchases = () => {
+    // Filter purchases that don't have a sale associated
+    return purchases.filter((purchase) => {
+      const estimation = estimations.find((e) => e.purchase_id === purchase.id)
+      return !estimation || !estimation.sale_id
+    })
+  }
+
   const getPurchaseName = (purchaseId: number) => {
-    return purchases.find((p) => p.id === purchaseId)?.article_name || 'Desconocido'
+    const purchase = purchases.find((p) => p.id === purchaseId)
+    return purchase ? purchase.article_name : 'Desconocido'
+  }
+
+  const getPurchaseId = (purchaseId: number) => {
+    return purchaseId
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,6 +140,7 @@ export function SalesPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Precio</th>
@@ -133,6 +151,7 @@ export function SalesPage() {
                 {sales.length > 0 ? (
                   sales.map((sale) => (
                     <tr key={sale.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4">{sale.purchase_id}</td>
                       <td className="px-6 py-4">{getPurchaseName(sale.purchase_id)}</td>
                       <td className="px-6 py-4 text-gray-600">
                         {formatDate(sale.sale_date)}
@@ -183,9 +202,9 @@ export function SalesPage() {
                 required
               >
                 <option value="">Selecciona una compra</option>
-                {purchases.map((purchase) => (
+                {getAvailablePurchases().map((purchase) => (
                   <option key={purchase.id} value={purchase.id}>
-                    {purchase.article_name} - {purchase.amount.toFixed(2)}€
+                    ({purchase.id}) - {purchase.article_name}
                   </option>
                 ))}
               </select>

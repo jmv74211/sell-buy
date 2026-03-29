@@ -205,7 +205,7 @@ export function DashboardPage() {
                 title="Saldo Recuperado Estimado"
                 value={`${customStats.recoveredEstimated.toFixed(2)}€`}
                 icon={<Wallet size={24} />}
-                color="yellow"
+                color="purple"
               />
               <StatCard
                 title="Total Esperado Ganar"
@@ -301,6 +301,9 @@ export function DashboardPage() {
                   <thead className="bg-gray-100 border-b-2 border-gray-300">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        ID Artículo
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                         Nombre Artículo
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
@@ -355,6 +358,9 @@ export function DashboardPage() {
                             estimation
                           )} hover:bg-opacity-75 transition-colors`}
                         >
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {purchase.id}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-700">
                             {purchase.article_name}
                           </td>

@@ -127,6 +127,7 @@ export function PurchasesPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Precio</th>
@@ -137,6 +138,7 @@ export function PurchasesPage() {
                 {purchases.length > 0 ? (
                   purchases.map((purchase) => (
                     <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4">{purchase.id}</td>
                       <td className="px-6 py-4">{purchase.article_name}</td>
                       <td className="px-6 py-4 text-gray-600">
                         {formatDate(purchase.purchase_date)}

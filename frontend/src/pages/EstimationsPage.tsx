@@ -17,7 +17,6 @@ export function EstimationsPage() {
   const [editingId, setEditingId] = React.useState<number | null>(null)
   const [formData, setFormData] = React.useState({
     purchase_id: '',
-    sale_id: null as number | null,
     estimated_profit: '',
   })
 
@@ -47,6 +46,11 @@ export function EstimationsPage() {
       : 'Desconocido'
   }
 
+  const getArticleName = (purchaseId: number) => {
+    const purchase = purchases.find((p) => p.id === purchaseId)
+    return purchase ? purchase.article_name : 'Desconocido'
+  }
+
   const getSaleName = (saleId: number | null) => {
     if (!saleId) return 'No realizada'
     const sale = sales.find((s) => s.id === saleId)
@@ -64,6 +68,13 @@ export function EstimationsPage() {
     return sale ? sale.amount : 0
   }
 
+  const getAvailablePurchases = () => {
+    // Filter purchases that don't have an estimation already
+    return purchases.filter((purchase) => {
+      return !estimations.some((e) => e.purchase_id === purchase.id)
+    })
+  }
+
   const calculateActualProfit = (purchaseId: number, saleId: number | null) => {
     const purchaseAmount = getPurchaseAmount(purchaseId)
     const saleAmount = getSaleAmount(saleId)
@@ -76,13 +87,11 @@ export function EstimationsPage() {
       if (editingId) {
         await estimationService.update(editingId, {
           purchase_id: parseInt(formData.purchase_id),
-          sale_id: formData.sale_id,
           estimated_profit: parseFloat(formData.estimated_profit),
         } as any)
       } else {
         await estimationService.create({
           purchase_id: parseInt(formData.purchase_id),
-          sale_id: formData.sale_id,
           estimated_profit: parseFloat(formData.estimated_profit),
         } as any)
       }
@@ -90,7 +99,6 @@ export function EstimationsPage() {
       setShowModal(false)
       setFormData({
         purchase_id: '',
-        sale_id: null,
         estimated_profit: '',
       })
       setEditingId(null)
@@ -114,7 +122,6 @@ export function EstimationsPage() {
     setEditingId(estimation.id)
     setFormData({
       purchase_id: estimation.purchase_id.toString(),
-      sale_id: estimation.sale_id,
       estimated_profit: estimation.estimated_profit.toString(),
     })
     setShowModal(true)
@@ -134,7 +141,6 @@ export function EstimationsPage() {
               setEditingId(null)
               setFormData({
                 purchase_id: '',
-                sale_id: null,
                 estimated_profit: '',
               })
               setShowModal(true)
@@ -153,15 +159,13 @@ export function EstimationsPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">
                     Ganancia Estimada
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">
                     Ganancia Real
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">
-                    Diferencia
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
                 </tr>
@@ -177,8 +181,9 @@ export function EstimationsPage() {
                       actualProfit - estimation.estimated_profit
                     return (
                       <tr key={estimation.id} className="border-b hover:bg-gray-50">
+                        <td className="px-6 py-4">{estimation.purchase_id}</td>
                         <td className="px-6 py-4">
-                          {getPurchaseName(estimation.purchase_id)}
+                          {getArticleName(estimation.purchase_id)}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -188,7 +193,7 @@ export function EstimationsPage() {
                                 : 'text-red-600'
                             }`}
                           >
-                            ${estimation.estimated_profit.toFixed(2)}
+                            {estimation.estimated_profit.toFixed(2)}€
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -199,19 +204,6 @@ export function EstimationsPage() {
                           >
                             {estimation.sale_id ? `${actualProfit.toFixed(2)}€` : 'Pendiente'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {estimation.sale_id ? (
-                            <span
-                              className={`font-semibold ${
-                                difference >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}
-                            >
-                              ${difference.toFixed(2)}€
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
                         </td>
                         <td className="px-6 py-4 flex gap-2">
                           <button
@@ -259,31 +251,9 @@ export function EstimationsPage() {
                 required
               >
                 <option value="">Selecciona una compra</option>
-                {purchases.map((purchase) => (
+                {getAvailablePurchases().map((purchase) => (
                   <option key={purchase.id} value={purchase.id}>
-                    {purchase.article_name} - {purchase.amount.toFixed(2)}€
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Venta (Opcional)
-              </label>
-              <select
-                value={formData.sale_id || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    sale_id: e.target.value ? parseInt(e.target.value) : null,
-                  })
-                }
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Sin venta asociada</option>
-                {sales.map((sale) => (
-                  <option key={sale.id} value={sale.id}>
-                    Venta #{sale.id} - {sale.amount.toFixed(2)}€
+                    ({purchase.id}) - {purchase.article_name}
                   </option>
                 ))}
               </select>
