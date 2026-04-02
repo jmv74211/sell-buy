@@ -1,5 +1,5 @@
 import React from 'react'
-import { Package, TrendingUp, Activity, Wallet, TrendingDown } from 'lucide-react'
+import { Package, TrendingUp, Activity, Wallet, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
 import { analyticsService } from '@/services/analytics'
@@ -26,6 +26,8 @@ export function DashboardPage() {
   const [loading, setLoading] = React.useState(true)
   const [selectedDate, setSelectedDate] = React.useState<string>('')
   const [chartRange, setChartRange] = React.useState<'week' | 'month' | 'all'>('month')
+  const [tableSortKey, setTableSortKey] = React.useState<string>('id')
+  const [tableSortDir, setTableSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [customStats, setCustomStats] = React.useState({
     totalSpent: 0,
     recoveredEstimated: 0,
@@ -153,6 +155,33 @@ export function DashboardPage() {
   React.useEffect(() => {
     loadData()
   }, [loadData])
+
+  const handleTableSort = (key: string) => {
+    if (tableSortKey === key) setTableSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setTableSortKey(key); setTableSortDir('asc') }
+  }
+  const TableSortIcon = ({ col }: { col: string }) => tableSortKey === col
+    ? tableSortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
+    : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
+  const sortedTablePurchases = React.useMemo(() => [...purchases].sort((a, b) => {
+    const estA = estimations.find(e => e.purchase_id === a.id)
+    const estB = estimations.find(e => e.purchase_id === b.id)
+    const saleA = estA?.sale_id ? sales.find(s => s.id === estA.sale_id) : null
+    const saleB = estB?.sale_id ? sales.find(s => s.id === estB.sale_id) : null
+    let av: any, bv: any
+    switch (tableSortKey) {
+      case 'name': av = a.article_name.toLowerCase(); bv = b.article_name.toLowerCase(); break
+      case 'amount': av = a.amount; bv = b.amount; break
+      case 'estSalePrice': av = estA?.estimated_sale_price ?? -Infinity; bv = estB?.estimated_sale_price ?? -Infinity; break
+      case 'estProfit': av = estA?.estimated_profit ?? -Infinity; bv = estB?.estimated_profit ?? -Infinity; break
+      case 'saleAmount': av = saleA?.amount ?? -Infinity; bv = saleB?.amount ?? -Infinity; break
+      case 'gainNeto': av = saleA ? saleA.amount - a.amount : -Infinity; bv = saleB ? saleB.amount - b.amount : -Infinity; break
+      case 'purchaseDate': av = a.purchase_date; bv = b.purchase_date; break
+      case 'saleDate': av = saleA?.sale_date ?? ''; bv = saleB?.sale_date ?? ''; break
+      default: av = a.id; bv = b.id
+    }
+    return tableSortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+  }), [purchases, estimations, sales, tableSortKey, tableSortDir])
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -366,37 +395,19 @@ export function DashboardPage() {
                 <table className="w-full">
                   <thead className="bg-gray-100 border-b-2 border-gray-300">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        ID Artículo
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Nombre Artículo
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Precio Compra
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Estimación Venta
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Ganancia Estimada
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Precio Venta
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Ganancia Neta
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Fecha Compra
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Fecha Venta
-                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('id')}>ID Artículo <TableSortIcon col="id" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('name')}>Nombre Artículo <TableSortIcon col="name" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('amount')}>Precio Compra <TableSortIcon col="amount" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estSalePrice')}>Estimación Venta <TableSortIcon col="estSalePrice" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estProfit')}>Ganancia Estimada <TableSortIcon col="estProfit" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleAmount')}>Precio Venta <TableSortIcon col="saleAmount" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('gainNeto')}>Ganancia Neta <TableSortIcon col="gainNeto" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('purchaseDate')}>Fecha Compra <TableSortIcon col="purchaseDate" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleDate')}>Fecha Venta <TableSortIcon col="saleDate" /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...purchases].sort((a, b) => b.id - a.id).map((purchase) => {
+                    {sortedTablePurchases.map((purchase) => {
                       const estimation = estimations.find(
                         (e) => e.purchase_id === purchase.id
                       )

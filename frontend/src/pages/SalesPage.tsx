@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { saleService } from '@/services/sales'
 import { purchaseService } from '@/services/purchases'
 import { estimationService } from '@/services/estimations'
@@ -13,6 +13,8 @@ export function SalesPage() {
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [sortKey, setSortKey] = React.useState<string>('id')
+  const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
   const [formData, setFormData] = React.useState({
@@ -127,6 +129,22 @@ export function SalesPage() {
     setShowModal(true)
   }
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+  const SortIcon = ({ col }: { col: string }) => sortKey === col
+    ? sortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
+    : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
+  const sortedSales = [...sales].sort((a, b) => {
+    let av: any, bv: any
+    if (sortKey === 'name') { av = getPurchaseName(a.purchase_id).toLowerCase(); bv = getPurchaseName(b.purchase_id).toLowerCase() }
+    else if (sortKey === 'date') { av = a.sale_date; bv = b.sale_date }
+    else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
+    else { av = a.purchase_id; bv = b.purchase_id }
+    return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+  })
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
@@ -161,16 +179,16 @@ export function SalesPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Precio</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('date')}>Fecha <SortIcon col="date" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('amount')}>Precio <SortIcon col="amount" /></th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {sales.length > 0 ? (
-                  [...sales].sort((a, b) => b.id - a.id).map((sale) => (
+                  sortedSales.map((sale) => (
                     <tr key={sale.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{sale.purchase_id}</td>
                       <td className="px-6 py-4">{getPurchaseName(sale.purchase_id)}</td>

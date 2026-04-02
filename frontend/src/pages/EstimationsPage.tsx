@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
@@ -13,6 +13,8 @@ export function EstimationsPage() {
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [sales, setSales] = React.useState<Sale[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [sortKey, setSortKey] = React.useState<string>('id')
+  const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
   const [formData, setFormData] = React.useState({
@@ -127,6 +129,22 @@ export function EstimationsPage() {
     setShowModal(true)
   }
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+  const SortIcon = ({ col }: { col: string }) => sortKey === col
+    ? sortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
+    : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
+  const sortedEstimations = [...estimations].sort((a, b) => {
+    let av: any, bv: any
+    if (sortKey === 'name') { av = getArticleName(a.purchase_id).toLowerCase(); bv = getArticleName(b.purchase_id).toLowerCase() }
+    else if (sortKey === 'estimated') { av = a.estimated_profit; bv = b.estimated_profit }
+    else if (sortKey === 'actual') { av = a.actual_profit ?? -Infinity; bv = b.actual_profit ?? -Infinity }
+    else { av = a.purchase_id; bv = b.purchase_id }
+    return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+  })
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
@@ -159,20 +177,20 @@ export function EstimationsPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">
-                    Ganancia Estimada
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('estimated')}>
+                    Ganancia Estimada <SortIcon col="estimated" />
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">
-                    Ganancia Real
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('actual')}>
+                    Ganancia Real <SortIcon col="actual" />
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {estimations.length > 0 ? (
-                  [...estimations].sort((a, b) => b.id - a.id).map((estimation) => {
+                  sortedEstimations.map((estimation) => {
                     const actualProfit = calculateActualProfit(
                       estimation.purchase_id,
                       estimation.sale_id

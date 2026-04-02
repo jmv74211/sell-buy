@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { purchaseService } from '@/services/purchases'
 import type { Purchase } from '@/types/api'
 import { formatDate } from '@/utils/date'
@@ -9,6 +9,8 @@ import { formatDate } from '@/utils/date'
 export function PurchasesPage() {
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [sortKey, setSortKey] = React.useState<string>('id')
+  const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
   const [formData, setFormData] = React.useState({
@@ -92,6 +94,22 @@ export function PurchasesPage() {
     setShowModal(true)
   }
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+  const SortIcon = ({ col }: { col: string }) => sortKey === col
+    ? sortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
+    : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
+  const sortedPurchases = [...purchases].sort((a, b) => {
+    let av: any, bv: any
+    if (sortKey === 'name') { av = a.article_name.toLowerCase(); bv = b.article_name.toLowerCase() }
+    else if (sortKey === 'date') { av = a.purchase_date; bv = b.purchase_date }
+    else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
+    else { av = a.id; bv = b.id }
+    return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+  })
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
@@ -127,16 +145,16 @@ export function PurchasesPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">ID Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Artículo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Precio</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('date')}>Fecha <SortIcon col="date" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('amount')}>Precio <SortIcon col="amount" /></th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.length > 0 ? (
-                  [...purchases].sort((a, b) => b.id - a.id).map((purchase) => (
+                  sortedPurchases.map((purchase) => (
                     <tr key={purchase.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{purchase.id}</td>
                       <td className="px-6 py-4">{purchase.article_name}</td>
