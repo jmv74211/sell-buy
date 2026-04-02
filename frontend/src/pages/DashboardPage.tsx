@@ -102,51 +102,25 @@ export function DashboardPage() {
       // Calculate custom statistics
       const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
 
-      // SALDO RECUPERADO ESTIMADO = Σ(ESTIMACIÓN VENTA > 0) - Σ(GANANCIA NETA > 0)
-      // Usa el campo estimated_sale_price guardado directamente desde el CSV (columna ESTIMACIÓN VENTA)
+      // SALDO RECUPERADO ESTIMADO = Σ(ESTIMACIÓN VENTA > 0) - Σ(GANANCIA NETA > 0 para vendidos)
+      // Usa actual_profit (columna GANANCIA NETA del CSV) en lugar de sale - purchase
       const sumEstimatedSalePrices = estimationsData
         .filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
         .reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
 
-      // Suma de todas las ganancias netas realizadas (con profit > 0)
       const sumRealizedProfits = estimationsData
-        .filter(e => e.sale_id)
-        .reduce((sum, e) => {
-          const purchase = purchasesData.find(p => p.id === e.purchase_id)
-          const sale = salesData.find(s => s.id === e.sale_id)
-          if (purchase && sale) {
-            const profit = sale.amount - purchase.amount
-            if (profit > 0) return sum + profit
-          }
-          return sum
-        }, 0)
+        .filter(e => e.sale_id && e.actual_profit && e.actual_profit > 0)
+        .reduce((sum, e) => sum + (e.actual_profit ?? 0), 0)
 
       const recoveredEstimated = sumEstimatedSalePrices - sumRealizedProfits
 
-      // Calculate total expected profit: use actual profit if sold, estimated if not
-      let totalExpectedProfit = 0
-      estimationsData.forEach((est) => {
-        if (est.sale_id) {
-          const purchase = purchasesData.find((p) => p.id === est.purchase_id)
-          const sale = salesData.find((s) => s.id === est.sale_id)
-          if (purchase && sale) {
-            totalExpectedProfit += sale.amount - purchase.amount
-          }
-        } else {
-          totalExpectedProfit += est.estimated_profit
-        }
-      })
+      // TOTAL ESPERADO GANAR = Σ(estimated_profit) para todos los items (columna GANANCIA ESTIMADA)
+      const totalExpectedProfit = estimationsData.reduce((sum, e) => sum + e.estimated_profit, 0)
 
-      let totalEarned = 0
-      estimationsData.forEach((est) => {
-        if (est.sale_id) {
-          const purchase = purchasesData.find((p) => p.id === est.purchase_id)
-          const sale = salesData.find((s) => s.id === est.sale_id)
-          if (purchase && sale) {
-            totalEarned += sale.amount - purchase.amount
-          }
-        }
-      })
+      // TOTAL GANADO = Σ(actual_profit) para items vendidos (columna GANANCIA NETA del CSV)
+      const totalEarned = estimationsData
+        .filter(e => e.sale_id)
+        .reduce((sum, e) => sum + (e.actual_profit ?? 0), 0)
 
       // Saldo Total = Saldo Recuperado Estimado + Total Ganado - Total Gastado
       const totalBalance = recoveredEstimated + totalEarned - totalSpent
