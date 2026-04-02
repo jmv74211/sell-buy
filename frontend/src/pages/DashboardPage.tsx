@@ -159,6 +159,12 @@ export function DashboardPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <StatCard
+                title="Saldo Total"
+                value={`${customStats.totalBalance.toFixed(2)}€`}
+                icon={<Activity size={24} />}
+                color={customStats.totalBalance >= 0 ? 'green' : 'red'}
+              />
+              <StatCard
                 title="Total Gastado"
                 value={`${customStats.totalSpent.toFixed(2)}€`}
                 icon={<TrendingDown size={24} />}
@@ -181,12 +187,6 @@ export function DashboardPage() {
                 value={`${customStats.totalEarned.toFixed(2)}€`}
                 icon={<TrendingUp size={24} />}
                 color={customStats.totalEarned >= 0 ? 'green' : 'red'}
-              />
-              <StatCard
-                title="Saldo Total"
-                value={`${customStats.totalBalance.toFixed(2)}€`}
-                icon={<Activity size={24} />}
-                color={customStats.totalBalance >= 0 ? 'green' : 'red'}
               />
             </div>
 
