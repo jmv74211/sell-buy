@@ -7,6 +7,16 @@ import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
 import type { SummaryStats, Estimation, Purchase, Sale } from '@/types/api'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts'
 
 export function DashboardPage() {
   const [stats, setStats] = React.useState<SummaryStats | null>(null)
@@ -15,6 +25,7 @@ export function DashboardPage() {
   const [sales, setSales] = React.useState<Sale[]>([])
   const [loading, setLoading] = React.useState(true)
   const [selectedDate, setSelectedDate] = React.useState<string>('')
+  const [chartRange, setChartRange] = React.useState<'week' | 'month' | 'all'>('month')
   const [customStats, setCustomStats] = React.useState({
     totalSpent: 0,
     recoveredEstimated: 0,
@@ -98,6 +109,34 @@ export function DashboardPage() {
     }
   }, [])
 
+  const chartData = React.useMemo(() => {
+    // Compute per-day balance: Σ(estimated_sale_price) - Σ(purchase_amount)
+    const byDate = new Map<string, number>()
+    for (const p of purchases) {
+      const date = p.purchase_date.split('T')[0]
+      const est = estimations.find(e => e.purchase_id === p.id)
+      const estPrice = est?.estimated_sale_price ?? 0
+      byDate.set(date, (byDate.get(date) ?? 0) + estPrice - p.amount)
+    }
+    const sortedDates = [...byDate.keys()].sort()
+
+    const now = new Date()
+    const cutoff =
+      chartRange === 'week'
+        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : chartRange === 'month'
+        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : '0000-00-00'
+
+    // Per-day balance (same formula as the table: Σ est_sale_price - Σ purchase_amount)
+    return sortedDates
+      .filter(d => d >= cutoff)
+      .map(date => {
+        const [y, m, d] = date.split('-')
+        return { date: `${d}/${m}/${y}`, balance: Math.round((byDate.get(date) ?? 0) * 100) / 100 }
+      })
+  }, [purchases, estimations, chartRange])
+
   React.useEffect(() => {
     loadData()
   }, [loadData])
@@ -151,7 +190,7 @@ export function DashboardPage() {
               />
             </div>
 
-            {/* Daily Balance View */}
+            {/* Daily Balance View + Evolution Chart */}
             {(() => {
               const dayPurchases = purchases.filter(p => p.purchase_date.split('T')[0] === selectedDate)
               const sumEst = dayPurchases.reduce((s, p) => {
@@ -161,76 +200,142 @@ export function DashboardPage() {
               const sumBuy = dayPurchases.reduce((s, p) => s + p.amount, 0)
               const balance = sumEst - sumBuy
 
+              const rangeLabels = { week: 'Última semana', month: 'Último mes', all: 'Todo histórico' }
+
               return (
                 <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                  <div className="flex flex-wrap items-center gap-4 mb-6">
-                    <h2 className="text-lg font-bold text-gray-900">Balance por fecha</h2>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={e => setSelectedDate(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    {selectedDate && (
-                      <span className={`ml-auto text-xl font-bold ${
-                        balance >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        Balance: {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
-                      </span>
-                    )}
+                  {/* Header con mismo grid que el contenido */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="flex items-center gap-4">
+                      <h2 className="text-lg font-bold text-gray-900">Balance por fecha</h2>
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={e => setSelectedDate(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      {selectedDate && (
+                        <span className={`ml-auto text-xl font-bold ${
+                          balance >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {dayPurchases.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      {selectedDate ? 'No hay artículos para esta fecha.' : 'Selecciona una fecha.'}
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 border-b-2 border-gray-200">
-                            <th className="px-4 py-2 text-left font-semibold text-gray-700">Artículo</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Precio compra</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Precio estimado venta</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Balance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dayPurchases.map(p => {
-                            const est = estimations.find(e => e.purchase_id === p.id)
-                            const estPrice = est?.estimated_sale_price ?? 0
-                            const rowBalance = estPrice - p.amount
-                            return (
-                              <tr key={p.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-2 text-gray-800">{p.article_name}</td>
-                                <td className="px-4 py-2 text-right text-gray-700">{p.amount.toFixed(2)} €</td>
-                                <td className="px-4 py-2 text-right text-gray-700">
-                                  {estPrice > 0 ? `${estPrice.toFixed(2)} €` : '-'}
-                                </td>
-                                <td className={`px-4 py-2 text-right font-medium ${
-                                  rowBalance >= 0 ? 'text-green-600' : 'text-red-600'
+                  {/* Table + Chart grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Table */}
+                    <div>
+                      {dayPurchases.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">
+                          {selectedDate ? 'No hay artículos para esta fecha.' : 'Selecciona una fecha.'}
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 border-b-2 border-gray-200">
+                                <th className="px-4 py-2 text-left font-semibold text-gray-700">Artículo</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Compra</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Est. venta</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Balance</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dayPurchases.map(p => {
+                                const est = estimations.find(e => e.purchase_id === p.id)
+                                const estPrice = est?.estimated_sale_price ?? 0
+                                const rowBalance = estPrice - p.amount
+                                return (
+                                  <tr key={p.id} className="border-b hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-gray-800">{p.article_name}</td>
+                                    <td className="px-4 py-2 text-right text-gray-700">{p.amount.toFixed(2)} €</td>
+                                    <td className="px-4 py-2 text-right text-gray-700">
+                                      {estPrice > 0 ? `${estPrice.toFixed(2)} €` : '-'}
+                                    </td>
+                                    <td className={`px-4 py-2 text-right font-medium ${
+                                      rowBalance >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {rowBalance >= 0 ? '+' : ''}{rowBalance.toFixed(2)} €
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t-2 border-gray-300 bg-gray-50">
+                                <td className="px-4 py-2 font-semibold text-gray-700">Total ({dayPurchases.length})</td>
+                                <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumBuy.toFixed(2)} €</td>
+                                <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumEst > 0 ? `${sumEst.toFixed(2)} €` : '-'}</td>
+                                <td className={`px-4 py-2 text-right font-bold ${
+                                  balance >= 0 ? 'text-green-600' : 'text-red-600'
                                 }`}>
-                                  {rowBalance >= 0 ? '+' : ''}{rowBalance.toFixed(2)} €
+                                  {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
                                 </td>
                               </tr>
-                            )
-                          })}
-                        </tbody>
-                        <tfoot>
-                          <tr className="border-t-2 border-gray-300 bg-gray-50">
-                            <td className="px-4 py-2 font-semibold text-gray-700">Total ({dayPurchases.length} artículos)</td>
-                            <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumBuy.toFixed(2)} €</td>
-                            <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumEst > 0 ? `${sumEst.toFixed(2)} €` : '-'}</td>
-                            <td className={`px-4 py-2 text-right font-bold ${
-                              balance >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Evolution Chart */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-gray-700">Evolución del balance</h3>
+                        <select
+                          value={chartRange}
+                          onChange={e => setChartRange(e.target.value as 'week' | 'month' | 'all')}
+                          className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          {(Object.keys(rangeLabels) as Array<keyof typeof rangeLabels>).map(k => (
+                            <option key={k} value={k}>{rangeLabels[k]}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {chartData.length === 0 ? (
+                        <p className="text-gray-400 text-center text-sm py-12">Sin datos para este período.</p>
+                      ) : (() => {
+                        const rangeBalance = chartData.reduce((s, d) => s + d.balance, 0)
+                        const lineColor = rangeBalance >= 0 ? '#16a34a' : '#dc2626'
+                        const fillColor = rangeBalance >= 0 ? '#bbf7d0' : '#fecaca'
+                        return (
+                          <ResponsiveContainer width="100%" height={240}>
+                            <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={lineColor} stopOpacity={0.35} />
+                                  <stop offset="95%" stopColor={lineColor} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                              <XAxis
+                                dataKey="date"
+                                tick={{ fontSize: 11 }}
+                                interval="preserveStartEnd"
+                              />
+                              <YAxis tick={{ fontSize: 11 }} width={48} unit=" €" />
+                              <Tooltip
+                                formatter={(v: number) => [`${v.toFixed(2)} €`, 'Balance del día']}
+                              />
+                              <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1.5} />
+                              <Area
+                                type="monotone"
+                                dataKey="balance"
+                                stroke={lineColor}
+                                strokeWidth={2}
+                                fill="url(#balanceGrad)"
+                                dot={chartData.length <= 20 ? { fill: lineColor, r: 3 } : false}
+                                activeDot={{ r: 5, fill: lineColor }}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        )
+                      })()}
+                    </div>
+                  </div>
                 </div>
               )
             })()}
