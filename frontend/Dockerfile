@@ -4,6 +4,7 @@ FROM node:20-alpine as builder
 WORKDIR /app
 
 # Instalar dependencias
+RUN npm cache clean --force
 COPY package*.json ./
 RUN npm install
 

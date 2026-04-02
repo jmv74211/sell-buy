@@ -65,6 +65,7 @@ class Estimation(Base):
     purchase_id = Column(Integer, ForeignKey("purchases.id"), unique=True, nullable=False)
     sale_id = Column(Integer, ForeignKey("sales.id"), unique=True, nullable=True)
     estimated_profit = Column(Numeric(10, 2), nullable=False)
+    estimated_sale_price = Column(Numeric(10, 2), nullable=True)
     actual_profit = Column(Numeric(10, 2), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 

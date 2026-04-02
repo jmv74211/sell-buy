@@ -39,6 +39,7 @@ export interface Estimation {
   purchase_id: number
   sale_id: number | null
   estimated_profit: number
+  estimated_sale_price?: number | null
   actual_profit: number | null
   created_at: string
 }

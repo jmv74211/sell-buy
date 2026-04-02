@@ -84,6 +84,7 @@ class EstimationBase(BaseModel):
     purchase_id: int
     sale_id: Optional[int] = None
     estimated_profit: Decimal
+    estimated_sale_price: Optional[Decimal] = None
     actual_profit: Optional[Decimal] = None
 
 class EstimationCreate(EstimationBase):
@@ -94,6 +95,7 @@ class EstimationResponse(BaseModel):
     purchase_id: int
     sale_id: Optional[int] = None
     estimated_profit: float
+    estimated_sale_price: Optional[float] = None
     actual_profit: Optional[float] = None
     created_at: datetime
 

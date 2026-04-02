@@ -61,7 +61,6 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
-      - ./frontend/vite.config.ts:/app/vite.config.ts
     networks:
       - sellbuy-network
     restart: unless-stopped

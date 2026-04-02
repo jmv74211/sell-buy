@@ -8,9 +8,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs'],
   },
   server: {
-    port: 8000,
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://backend:8000',

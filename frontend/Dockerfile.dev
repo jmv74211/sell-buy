@@ -24,12 +24,12 @@ RUN npm install
 COPY src ./src
 
 # Exponer puerto Vite
-EXPOSE 8000
+EXPOSE 5173
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000 || exit 1
+    CMD curl -f http://localhost:5173 || exit 1
 
 # Comando para desarrollo con hot reload
 # --host 0.0.0.0 hace que sea accesible desde fuera del contenedor
-CMD ["sh", "-c", "vite --host 0.0.0.0"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

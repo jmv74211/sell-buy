@@ -103,21 +103,37 @@ export function DashboardPage() {
       // Calculate custom statistics
       const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
 
-      const estimationsWithoutSale = estimationsData.filter((e) => !e.sale_id)
-      const recoveredEstimated = estimationsWithoutSale.reduce((sum, e) => sum + e.estimated_profit, 0)
+      // SALDO RECUPERADO ESTIMADO = Σ(ESTIMACIÓN VENTA > 0) - Σ(GANANCIA NETA > 0)
+      // Usa el campo estimated_sale_price guardado directamente desde el CSV (columna ESTIMACIÓN VENTA)
+      const sumEstimatedSalePrices = estimationsData
+        .filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
+        .reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
+
+      // Suma de todas las ganancias netas realizadas (con profit > 0)
+      const sumRealizedProfits = estimationsData
+        .filter(e => e.sale_id)
+        .reduce((sum, e) => {
+          const purchase = purchasesData.find(p => p.id === e.purchase_id)
+          const sale = salesData.find(s => s.id === e.sale_id)
+          if (purchase && sale) {
+            const profit = sale.amount - purchase.amount
+            if (profit > 0) return sum + profit
+          }
+          return sum
+        }, 0)
+
+      const recoveredEstimated = sumEstimatedSalePrices - sumRealizedProfits
 
       // Calculate total expected profit: use actual profit if sold, estimated if not
       let totalExpectedProfit = 0
       estimationsData.forEach((est) => {
         if (est.sale_id) {
-          // If sold, use actual profit from sale
           const purchase = purchasesData.find((p) => p.id === est.purchase_id)
           const sale = salesData.find((s) => s.id === est.sale_id)
           if (purchase && sale) {
             totalExpectedProfit += sale.amount - purchase.amount
           }
         } else {
-          // If not sold, use estimated profit
           totalExpectedProfit += est.estimated_profit
         }
       })
@@ -133,29 +149,8 @@ export function DashboardPage() {
         }
       })
 
-      // Calculate total balance: sum of all items' balance
-      // For each item:
-      // - If sold: sale_price - purchase_price
-      // - If not sold but estimated: estimated_sale_price - purchase_price
-      // - If no estimation: -purchase_price
-      let totalBalance = 0
-      purchasesData.forEach((purchase) => {
-        const estimation = estimationsData.find((e) => e.purchase_id === purchase.id)
-
-        if (estimation?.sale_id) {
-          // Sold: use actual sale price
-          const sale = salesData.find((s) => s.id === estimation.sale_id)
-          if (sale) {
-            totalBalance += sale.amount - purchase.amount
-          }
-        } else if (estimation) {
-          // Not sold but has estimation: use estimated sale price
-          totalBalance += estimation.estimated_profit
-        } else {
-          // No estimation: only account for negative purchase price
-          totalBalance -= purchase.amount
-        }
-      })
+      // Saldo Total = Saldo Recuperado Estimado + Total Ganado - Total Gastado
+      const totalBalance = recoveredEstimated + totalEarned - totalSpent
 
       setCustomStats({
         totalSpent,
@@ -341,8 +336,8 @@ export function DashboardPage() {
                       const sale = estimation?.sale_id
                         ? sales.find((s) => s.id === estimation.sale_id)
                         : null
-                      const estimationSalePrice = estimation?.estimated_profit
-                        ? purchase.amount + estimation.estimated_profit
+                      const estimationSalePrice = estimation?.estimated_sale_price
+                        ? estimation.estimated_sale_price
                         : null
                       const gainNeto = sale
                         ? sale.amount - purchase.amount
