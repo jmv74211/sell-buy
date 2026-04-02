@@ -1,10 +1,11 @@
 import React from 'react'
-import { Menu, LogOut, Home, TrendingUp, Target, Download } from 'lucide-react'
+import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
 import { estimationService } from '@/services/estimations'
+import apiClient from '@/services/api'
 import clsx from 'clsx'
 
 export function Sidebar() {
@@ -16,6 +17,55 @@ export function Sidebar() {
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
+  }
+
+  const [isImporting, setIsImporting] = React.useState(false)
+  const importInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleImportData = () => {
+    importInputRef.current?.click()
+  }
+
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith('.csv')) {
+      alert('Por favor selecciona un archivo CSV')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `¿Estás seguro de que quieres reimportar los datos desde "${file.name}"?\n\nEsto borrará todas las compras, ventas y estimaciones actuales y las reemplazará con los datos del CSV. Los datos del usuario se mantendrán intactos.`
+    )
+    if (!confirmed) {
+      e.target.value = ''
+      return
+    }
+
+    setIsImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await apiClient.post('/import/csv', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const { purchases, sales, estimations, errors } = response.data
+      let msg = `✅ Importación completada:\n• ${purchases} compras\n• ${sales} ventas\n• ${estimations} estimaciones`
+      if (errors && errors.length > 0) {
+        msg += `\n\n⚠️ ${errors.length} errores:\n${errors.slice(0, 5).join('\n')}`
+      }
+      alert(msg)
+      // Reload current page data
+      navigate(location.pathname, { replace: true })
+      window.location.reload()
+    } catch (error: any) {
+      const detail = error.response?.data?.detail || 'Error desconocido'
+      alert(`❌ Error al importar: ${detail}`)
+    } finally {
+      setIsImporting(false)
+      e.target.value = ''
+    }
   }
 
   const handleExportData = async () => {
@@ -94,6 +144,23 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={handleImportFileChange}
+        />
+
+        <button
+          onClick={handleImportData}
+          disabled={isImporting}
+          className="absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-400 disabled:opacity-60 transition-colors w-12 justify-center lg:w-auto"
+        >
+          <Upload size={20} />
+          <span className="hidden lg:inline">{isImporting ? 'Importando...' : 'Importar datos'}</span>
+        </button>
 
         <button
           onClick={handleExportData}

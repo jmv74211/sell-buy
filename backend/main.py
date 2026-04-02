@@ -43,6 +43,7 @@ app.include_router(routes.purchases.router)
 app.include_router(routes.sales.router)
 app.include_router(routes.estimations.router)
 app.include_router(routes.analytics.router)
+app.include_router(routes.import_csv.router)
 
 @app.get("/health")
 async def health_check():
