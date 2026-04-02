@@ -74,19 +74,91 @@ export function Sidebar() {
       const sales = await saleService.getAll()
       const estimations = await estimationService.getAll()
 
-      const backupData = {
-        exportDate: new Date().toISOString(),
-        purchases,
-        sales,
-        estimations,
+      // Helper: format number Spanish-style (dot thousands, comma decimal)
+      const fmt = (n: number | null | undefined): string => {
+        if (n === null || n === undefined) return '0'
+        return n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
       }
 
-      const jsonString = JSON.stringify(backupData, null, 2)
-      const blob = new Blob([jsonString], { type: 'application/json' })
+      // Compute summary statistics
+      const totalGastado = purchases.reduce((s, p) => s + p.amount, 0)
+      const withEsp = estimations.filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
+      const sumEstVenta = withEsp.reduce((s, e) => s + (e.estimated_sale_price ?? 0), 0)
+      const sumGananciaNetaGt0 = estimations.reduce((s, e) => {
+        if (!e.sale_id) return s
+        const sale = sales.find(sa => sa.id === e.sale_id)
+        const purchase = purchases.find(p => p.id === e.purchase_id)
+        if (!sale || !purchase) return s
+        const profit = sale.amount - purchase.amount
+        return profit > 0 ? s + profit : s
+      }, 0)
+      const saldoRecuperado = sumEstVenta - sumGananciaNetaGt0
+      const totalGanado = estimations.reduce((s, e) => {
+        if (!e.sale_id) return s
+        const sale = sales.find(sa => sa.id === e.sale_id)
+        const purchase = purchases.find(p => p.id === e.purchase_id)
+        if (!sale || !purchase) return s
+        return s + (sale.amount - purchase.amount)
+      }, 0)
+      const saldo = saldoRecuperado + totalGanado - totalGastado
+      const totalEsperado = estimations.reduce((s, e) => {
+        if (e.sale_id) {
+          const sale = sales.find(sa => sa.id === e.sale_id)
+          const purchase = purchases.find(p => p.id === e.purchase_id)
+          if (sale && purchase) return s + (sale.amount - purchase.amount)
+        }
+        return s + e.estimated_profit
+      }, 0)
+
+      // Build CSV rows — same format as the import CSV
+      const rows: string[] = []
+
+      // 7 summary header rows
+      rows.push(',,,,,,,,,,,,')
+      rows.push(`,,,,,TOTAL GASTADO,,${fmt(totalGastado)} €,,,,,`)
+      rows.push(`,,,,,SALDO RECUPERADO ESTIMADO,,${fmt(saldoRecuperado)} €,,,,,`)
+      rows.push(`,,,,,SALDO,,${fmt(saldo)} €,,,,,`)
+      rows.push(`,,,,,TOTAL ESPERADO GANAR,,${fmt(totalEsperado)} €,,,,,`)
+      rows.push(`,,,,,TOTAL GANADO,,${fmt(totalGanado)} €,,,,,`)
+      rows.push(',,,,,,,,,,,,')
+
+      // Column header row
+      rows.push(',ARTÍCULO,,,,,,PRECIO COMPRA,ESTIMACIÓN VENTA,REVENDIDO POR,GANANCIA ESTIMADA,GANANCIA NETA,FECHA')
+
+      // Data rows — sorted by purchase date ascending
+      const sorted = [...purchases].sort(
+        (a, b) => new Date(a.purchase_date).getTime() - new Date(b.purchase_date).getTime()
+      )
+
+      for (const purchase of sorted) {
+        const estimation = estimations.find(e => e.purchase_id === purchase.id)
+        const sale = estimation?.sale_id ? sales.find(s => s.id === estimation.sale_id) : null
+
+        const precioCompra = fmt(purchase.amount)
+        const estVenta = estimation?.estimated_sale_price ? fmt(estimation.estimated_sale_price) : '0'
+        const revendidoPor = sale ? fmt(sale.amount) : '0'
+        const gananciaEstimada = estimation ? fmt(estimation.estimated_profit) : '0'
+        const gananciaNeta = sale
+          ? fmt(sale.amount - purchase.amount)
+          : (estimation?.actual_profit ? fmt(estimation.actual_profit) : '0')
+        const fecha = new Date(purchase.purchase_date).toLocaleDateString('es-ES', {
+          day: '2-digit', month: '2-digit', year: 'numeric'
+        }).replace(/\//g, '-')
+
+        // Escape article name if it contains commas
+        const articleName = purchase.article_name.includes(',')
+          ? `"${purchase.article_name}"`
+          : purchase.article_name
+
+        rows.push(`,${articleName},,,,,,${precioCompra},${estVenta},${revendidoPor},${gananciaEstimada},${gananciaNeta},${fecha}`)
+      }
+
+      const csvContent = rows.join('\n')
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `sellbuy_backup_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `Videojuegos - Compras_Ventas_${new Date().toISOString().split('T')[0]}.csv`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
