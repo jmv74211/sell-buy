@@ -422,9 +422,9 @@ export function DashboardPage() {
                         : null
                       const purchaseDate = new Date(
                         purchase.purchase_date
-                      ).toLocaleDateString()
+                      ).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
                       const saleDate = sale
-                        ? new Date(sale.sale_date).toLocaleDateString()
+                        ? new Date(sale.sale_date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
                         : '-'
 
                       return (

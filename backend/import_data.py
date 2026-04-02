@@ -41,19 +41,19 @@ def parse_decimal(value_str):
         return Decimal('0.00')
 
 def parse_date(date_str):
-    """Convierte string de fecha en formato DD-MM-YYYY a datetime"""
-    if not date_str or date_str.strip() == '':
+    """Convierte string de fecha a datetime. Soporta DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, etc."""
+    if not date_str:
         return datetime(2026, 1, 1)
-
-    try:
-        # Intentar formato DD-MM-YYYY
-        return datetime.strptime(date_str.strip(), "%d-%m-%Y")
-    except:
+    s = date_str.strip()
+    # Treat Excel numeric zeros or empty-like values as missing
+    if not s or s in ('0', '0.0', '-', 'N/A', 'n/a'):
+        return datetime(2026, 1, 1)
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%y", "%d/%m/%y"):
         try:
-            # Intentar formato YYYY-MM-DD
-            return datetime.strptime(date_str.strip(), "%Y-%m-%d")
-        except:
-            return datetime(2026, 1, 1)
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return datetime(2026, 1, 1)
 
 def import_csv_data(db: Session, csv_path: str):
     """Importa datos desde un archivo CSV"""
@@ -99,7 +99,9 @@ def import_csv_data(db: Session, csv_path: str):
                 estimated_profit_val = parse_decimal(row.get('GANANCIA ESTIMADA', '0'))
                 sale_price = parse_decimal(row.get('REVENDIDO POR', '0'))
                 actual_profit_val = parse_decimal(row.get('GANANCIA NETA', '0'))
-                purchase_date = parse_date(row.get('FECHA', ''))
+                purchase_date = parse_date((row.get('FECHA COMPRA') or row.get('FECHA') or '').strip())
+                sale_date_raw = (row.get('FECHA VENTA') or '').strip()
+                sale_date = parse_date(sale_date_raw) if sale_date_raw else purchase_date
 
                 # Crear Purchase
                 purchase = models.Purchase(
@@ -117,7 +119,6 @@ def import_csv_data(db: Session, csv_path: str):
                 # Crear Sale si hay precio de venta
                 sale = None
                 if sale_price > 0:
-                    sale_date = purchase_date  # Usar misma fecha como fallback
                     sale = models.Sale(
                         purchase_id=purchase.id,
                         sale_date=sale_date,

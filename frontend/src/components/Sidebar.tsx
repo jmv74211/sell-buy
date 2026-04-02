@@ -1,5 +1,5 @@
 import React from 'react'
-import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload } from 'lucide-react'
+import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload, CheckCircle, XCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { purchaseService } from '@/services/purchases'
@@ -21,50 +21,54 @@ export function Sidebar() {
 
   const [isImporting, setIsImporting] = React.useState(false)
   const importInputRef = React.useRef<HTMLInputElement>(null)
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null)
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
-  const handleImportData = () => {
-    importInputRef.current?.click()
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg })
+    setTimeout(() => setToast(null), 6000)
   }
 
-  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     if (!file.name.endsWith('.csv')) {
-      alert('Por favor selecciona un archivo CSV')
-      return
-    }
-
-    const confirmed = window.confirm(
-      `¿Estás seguro de que quieres reimportar los datos desde "${file.name}"?\n\nEsto borrará todas las compras, ventas y estimaciones actuales y las reemplazará con los datos del CSV. Los datos del usuario se mantendrán intactos.`
-    )
-    if (!confirmed) {
+      showToast('error', 'Por favor selecciona un archivo CSV')
       e.target.value = ''
       return
     }
+    setPendingFile(file)
+    setConfirmOpen(true)
+    e.target.value = ''
+  }
 
+  const handleConfirmImport = async () => {
+    if (!pendingFile) return
+    setConfirmOpen(false)
     setIsImporting(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', pendingFile)
       const response = await apiClient.post('/import/csv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       const { purchases, sales, estimations, errors } = response.data
-      let msg = `✅ Importación completada:\n• ${purchases} compras\n• ${sales} ventas\n• ${estimations} estimaciones`
+      let msg = `Importación completada: ${purchases} compras, ${sales} ventas, ${estimations} estimaciones`
       if (errors && errors.length > 0) {
-        msg += `\n\n⚠️ ${errors.length} errores:\n${errors.slice(0, 5).join('\n')}`
+        msg += ` (${errors.length} errores)`
       }
-      alert(msg)
-      // Reload current page data
-      navigate(location.pathname, { replace: true })
-      window.location.reload()
+      showToast('success', msg)
+      setTimeout(() => {
+        navigate(location.pathname, { replace: true })
+        window.location.reload()
+      }, 1500)
     } catch (error: any) {
-      const detail = error.response?.data?.detail || 'Error desconocido'
-      alert(`❌ Error al importar: ${detail}`)
+      const detail = error.response?.data?.detail || error.message || 'Error desconocido'
+      showToast('error', `Error al importar: ${detail}`)
     } finally {
       setIsImporting(false)
-      e.target.value = ''
+      setPendingFile(null)
     }
   }
 
@@ -123,7 +127,7 @@ export function Sidebar() {
       rows.push(',,,,,,,,,,,,')
 
       // Column header row
-      rows.push(',ARTÍCULO,,,,,,PRECIO COMPRA,ESTIMACIÓN VENTA,REVENDIDO POR,GANANCIA ESTIMADA,GANANCIA NETA,FECHA')
+      rows.push(',ARTÍCULO,,,,,,PRECIO COMPRA,ESTIMACIÓN VENTA,REVENDIDO POR,GANANCIA ESTIMADA,GANANCIA NETA,FECHA COMPRA,FECHA VENTA')
 
       // Data rows — sorted by purchase date ascending
       const sorted = [...purchases].sort(
@@ -144,13 +148,18 @@ export function Sidebar() {
         const fecha = new Date(purchase.purchase_date).toLocaleDateString('es-ES', {
           day: '2-digit', month: '2-digit', year: 'numeric'
         }).replace(/\//g, '-')
+        const fechaVenta = sale
+          ? new Date(sale.sale_date).toLocaleDateString('es-ES', {
+              day: '2-digit', month: '2-digit', year: 'numeric'
+            }).replace(/\//g, '-')
+          : ''
 
         // Escape article name if it contains commas
         const articleName = purchase.article_name.includes(',')
           ? `"${purchase.article_name}"`
           : purchase.article_name
 
-        rows.push(`,${articleName},,,,,,${precioCompra},${estVenta},${revendidoPor},${gananciaEstimada},${gananciaNeta},${fecha}`)
+        rows.push(`,${articleName},,,,,,${precioCompra},${estVenta},${revendidoPor},${gananciaEstimada},${gananciaNeta},${fecha},${fechaVenta}`)
       }
 
       const csvContent = rows.join('\n')
@@ -165,7 +174,7 @@ export function Sidebar() {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error exporting data:', error)
-      alert('Error al exportar los datos')
+      showToast('error', 'Error al exportar los datos')
     }
   }
 
@@ -217,22 +226,20 @@ export function Sidebar() {
           ))}
         </ul>
 
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".csv"
-          className="hidden"
-          onChange={handleImportFileChange}
-        />
-
-        <button
-          onClick={handleImportData}
-          disabled={isImporting}
-          className="absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-400 disabled:opacity-60 transition-colors w-12 justify-center lg:w-auto"
+        <label
+          className={`absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-400 transition-colors w-12 justify-center lg:w-auto cursor-pointer ${isImporting ? 'opacity-60 pointer-events-none' : ''}`}
         >
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleImportFileChange}
+            disabled={isImporting}
+          />
           <Upload size={20} />
           <span className="hidden lg:inline">{isImporting ? 'Importando...' : 'Importar datos'}</span>
-        </button>
+        </label>
 
         <button
           onClick={handleExportData}
@@ -257,6 +264,46 @@ export function Sidebar() {
           className="fixed inset-0 bg-black bg-opacity-50 lg:hidden z-30"
           onClick={() => setIsOpen(false)}
         />
+      )}
+
+      {/* Confirm import modal */}
+      {confirmOpen && pendingFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h2 className="text-lg font-bold mb-3">Confirmar importación</h2>
+            <p className="text-gray-700 mb-2">
+              ¿Reimportar datos desde <span className="font-semibold">{pendingFile.name}</span>?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              Esto borrará todas las compras, ventas y estimaciones actuales.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setConfirmOpen(false); setPendingFile(null) }}
+                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-400 text-white transition-colors"
+              >
+                Importar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-start gap-3 px-5 py-4 rounded-lg shadow-lg text-white max-w-sm ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {toast.type === 'success'
+            ? <CheckCircle size={20} className="mt-0.5 shrink-0" />
+            : <XCircle size={20} className="mt-0.5 shrink-0" />
+          }
+          <span className="text-sm">{toast.msg}</span>
+        </div>
       )}
     </>
   )

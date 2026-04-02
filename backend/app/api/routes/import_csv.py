@@ -25,11 +25,15 @@ def _parse_decimal(value_str: str) -> Decimal:
 
 
 def _parse_date(date_str: str) -> datetime:
-    if not date_str or date_str.strip() == '':
+    if not date_str:
         return datetime(2026, 1, 1)
-    for fmt in ("%d-%m-%Y", "%Y-%m-%d"):
+    s = date_str.strip()
+    # Treat Excel numeric zeros or empty-like values as missing
+    if not s or s in ('0', '0.0', '-', 'N/A', 'n/a'):
+        return datetime(2026, 1, 1)
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%y", "%d/%m/%y"):
         try:
-            return datetime.strptime(date_str.strip(), fmt)
+            return datetime.strptime(s, fmt)
         except ValueError:
             continue
     return datetime(2026, 1, 1)
@@ -95,7 +99,10 @@ def import_csv(
             estimated_profit_val = _parse_decimal(row.get('GANANCIA ESTIMADA', '0'))
             sale_price = _parse_decimal(row.get('REVENDIDO POR', '0'))
             actual_profit_val = _parse_decimal(row.get('GANANCIA NETA', '0'))
-            purchase_date = _parse_date(row.get('FECHA', ''))
+            fecha_raw = (row.get('FECHA COMPRA') or row.get('FECHA') or '').strip()
+            purchase_date = _parse_date(fecha_raw)
+            sale_date_raw = (row.get('FECHA VENTA') or '').strip()
+            sale_date = _parse_date(sale_date_raw) if sale_date_raw else purchase_date
 
             purchase = models.Purchase(
                 user_id=current_user.id,
@@ -113,7 +120,7 @@ def import_csv(
             if sale_price > 0:
                 sale = models.Sale(
                     purchase_id=purchase.id,
-                    sale_date=purchase_date,
+                    sale_date=sale_date,
                     amount=sale_price,
                 )
                 db.add(sale)
