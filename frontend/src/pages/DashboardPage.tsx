@@ -1,5 +1,5 @@
 import React from 'react'
-import { DollarSign, Package, TrendingUp, Activity, Wallet, TrendingDown } from 'lucide-react'
+import { Package, TrendingUp, Activity, Wallet, TrendingDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
 import { analyticsService } from '@/services/analytics'
@@ -7,32 +7,14 @@ import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
 import type { SummaryStats, Estimation, Purchase, Sale } from '@/types/api'
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts'
 
 export function DashboardPage() {
   const [stats, setStats] = React.useState<SummaryStats | null>(null)
-  const [monthlyData, setMonthlyData] = React.useState([])
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [sales, setSales] = React.useState<Sale[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [estimationStats, setEstimationStats] = React.useState({
-    totalEstimated: 0,
-    totalActual: 0,
-    difference: 0,
-    estimationCount: 0,
-  })
+  const [selectedDate, setSelectedDate] = React.useState<string>('')
   const [customStats, setCustomStats] = React.useState({
     totalSpent: 0,
     recoveredEstimated: 0,
@@ -58,7 +40,6 @@ export function DashboardPage() {
     setLoading(true)
     try {
       const summaryStats = await analyticsService.getSummary()
-      const monthly = await analyticsService.getMonthly()
       const estimationsData = await estimationService.getAll()
       const purchasesData = await purchaseService.getAll()
       const salesData = await saleService.getAll()
@@ -68,36 +49,14 @@ export function DashboardPage() {
       setPurchases(purchasesData)
       setSales(salesData)
 
-      // Process monthly data for chart
-      const processedData = monthly.purchases.map((p: any) => ({
-        month: p.month.split('T')[0],
-        purchases: p.amount,
-        sales: monthly.sales.find((s: any) => s.month === p.month)?.amount || 0,
-      }))
-      setMonthlyData(processedData)
-
-      // Calculate estimation stats
-      let totalEstimated = 0
-      let totalActual = 0
-      estimationsData.forEach((est) => {
-        totalEstimated += est.estimated_profit
-        const purchase = purchasesData.find((p) => p.id === est.purchase_id)
-        const sale = est.sale_id
-          ? salesData.find((s) => s.id === est.sale_id)
-          : null
-
-        if (purchase && sale) {
-          const actualProfit = sale.amount - purchase.amount
-          totalActual += actualProfit
-        }
-      })
-
-      setEstimationStats({
-        totalEstimated,
-        totalActual,
-        difference: totalActual - totalEstimated,
-        estimationCount: estimationsData.filter((e) => e.sale_id).length,
-      })
+      // Default selected date: most recent purchase date
+      if (purchasesData.length > 0) {
+        const latestDate = purchasesData
+          .map(p => p.purchase_date.split('T')[0])
+          .sort()
+          .at(-1) ?? ''
+        setSelectedDate(latestDate)
+      }
 
       // Calculate custom statistics
       const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
@@ -192,71 +151,89 @@ export function DashboardPage() {
               />
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Monthly Trend */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-lg font-bold mb-4">Compras vs Ventas Mensuales</h2>
-                {monthlyData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="purchases"
-                        stroke="#3b82f6"
-                        name="Compras"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="sales"
-                        stroke="#10b981"
-                        name="Ventas"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-gray-600 text-center py-8">
-                    No hay datos disponibles
-                  </p>
-                )}
-              </div>
+            {/* Daily Balance View */}
+            {(() => {
+              const dayPurchases = purchases.filter(p => p.purchase_date.split('T')[0] === selectedDate)
+              const sumEst = dayPurchases.reduce((s, p) => {
+                const est = estimations.find(e => e.purchase_id === p.id)
+                return s + (est?.estimated_sale_price ?? 0)
+              }, 0)
+              const sumBuy = dayPurchases.reduce((s, p) => s + p.amount, 0)
+              const balance = sumEst - sumBuy
 
-              {/* Summary Stats */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-lg font-bold mb-4">Resumen</h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <span className="text-gray-600">Compras Realizadas</span>
-                    <span className="font-bold text-2xl text-blue-600">
-                      {stats.purchase_count}
-                    </span>
+              return (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                  <div className="flex flex-wrap items-center gap-4 mb-6">
+                    <h2 className="text-lg font-bold text-gray-900">Balance por fecha</h2>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={e => setSelectedDate(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {selectedDate && (
+                      <span className={`ml-auto text-xl font-bold ${
+                        balance >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        Balance: {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
+                      </span>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <span className="text-gray-600">Ventas Completadas</span>
-                    <span className="font-bold text-2xl text-green-600">
-                      {stats.sale_count}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Ganancia Real</span>
-                    <span
-                      className={`font-bold text-2xl ${
-                        estimationStats.totalActual >= 0
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {estimationStats.totalActual.toFixed(2)}€
-                    </span>
-                  </div>
+
+                  {dayPurchases.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">
+                      {selectedDate ? 'No hay artículos para esta fecha.' : 'Selecciona una fecha.'}
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 border-b-2 border-gray-200">
+                            <th className="px-4 py-2 text-left font-semibold text-gray-700">Artículo</th>
+                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Precio compra</th>
+                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Precio estimado venta</th>
+                            <th className="px-4 py-2 text-right font-semibold text-gray-700">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dayPurchases.map(p => {
+                            const est = estimations.find(e => e.purchase_id === p.id)
+                            const estPrice = est?.estimated_sale_price ?? 0
+                            const rowBalance = estPrice - p.amount
+                            return (
+                              <tr key={p.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-2 text-gray-800">{p.article_name}</td>
+                                <td className="px-4 py-2 text-right text-gray-700">{p.amount.toFixed(2)} €</td>
+                                <td className="px-4 py-2 text-right text-gray-700">
+                                  {estPrice > 0 ? `${estPrice.toFixed(2)} €` : '-'}
+                                </td>
+                                <td className={`px-4 py-2 text-right font-medium ${
+                                  rowBalance >= 0 ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {rowBalance >= 0 ? '+' : ''}{rowBalance.toFixed(2)} €
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 border-gray-300 bg-gray-50">
+                            <td className="px-4 py-2 font-semibold text-gray-700">Total ({dayPurchases.length} artículos)</td>
+                            <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumBuy.toFixed(2)} €</td>
+                            <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumEst > 0 ? `${sumEst.toFixed(2)} €` : '-'}</td>
+                            <td className={`px-4 py-2 text-right font-bold ${
+                              balance >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {balance >= 0 ? '+' : ''}{balance.toFixed(2)} €
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              )
+            })()}
 
             {/* Articles Table */}
             <div className="bg-white rounded-lg shadow-md p-6">
