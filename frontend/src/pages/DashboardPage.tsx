@@ -47,6 +47,19 @@ export function DashboardPage() {
     return 'bg-white'
   }
 
+  const BalanceTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    const val: number = payload[0].value
+    return (
+      <div className="bg-white border border-gray-200 rounded shadow px-3 py-2 text-sm">
+        <p className="text-gray-600 mb-1">{label}</p>
+        <p className={`font-semibold ${val >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          Balance del día: {val >= 0 ? '+' : ''}{val.toFixed(2)} €
+        </p>
+      </div>
+    )
+  }
+
   const loadData = React.useCallback(async () => {
     setLoading(true)
     try {
@@ -303,7 +316,15 @@ export function DashboardPage() {
                         const fillColor = rangeBalance >= 0 ? '#bbf7d0' : '#fecaca'
                         return (
                           <ResponsiveContainer width="100%" height={240}>
-                            <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                            <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                            onClick={(e) => {
+                              const point = e?.activePayload?.[0]?.payload
+                              if (!point?.date) return
+                              const [d, m, y] = point.date.split('/')
+                              setSelectedDate(`${y}-${m}-${d}`)
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
                               <defs>
                                 <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor={lineColor} stopOpacity={0.35} />
@@ -317,9 +338,7 @@ export function DashboardPage() {
                                 interval="preserveStartEnd"
                               />
                               <YAxis tick={{ fontSize: 11 }} width={48} unit=" €" />
-                              <Tooltip
-                                formatter={(v: number) => [`${v.toFixed(2)} €`, 'Balance del día']}
-                              />
+                              <Tooltip content={<BalanceTooltip />} />
                               <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1.5} />
                               <Area
                                 type="monotone"
