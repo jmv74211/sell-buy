@@ -1,5 +1,4 @@
 import React from 'react'
-import { useLocation } from 'react-router-dom'
 import { DollarSign, Package, TrendingUp, Activity, Wallet, TrendingDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
@@ -22,7 +21,6 @@ import {
 } from 'recharts'
 
 export function DashboardPage() {
-  const location = useLocation()
   const [stats, setStats] = React.useState<SummaryStats | null>(null)
   const [monthlyData, setMonthlyData] = React.useState([])
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
@@ -57,6 +55,7 @@ export function DashboardPage() {
   }
 
   const loadData = React.useCallback(async () => {
+    setLoading(true)
     try {
       const summaryStats = await analyticsService.getSummary()
       const monthly = await analyticsService.getMonthly()
@@ -169,13 +168,6 @@ export function DashboardPage() {
   React.useEffect(() => {
     loadData()
   }, [loadData])
-
-  // Reload data when user navigates back to dashboard
-  React.useEffect(() => {
-    if (location.pathname === '/dashboard') {
-      loadData()
-    }
-  }, [location, loadData])
 
   return (
     <div className="flex h-screen bg-gray-100">

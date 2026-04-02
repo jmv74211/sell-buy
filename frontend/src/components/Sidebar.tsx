@@ -1,7 +1,7 @@
 import React from 'react'
 import { Menu, LogOut, Home, TrendingUp, Target, Download } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
 import { estimationService } from '@/services/estimations'
@@ -9,6 +9,7 @@ import clsx from 'clsx'
 
 export function Sidebar() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { clearAuth } = useAuthStore()
   const [isOpen, setIsOpen] = React.useState(false)
 
@@ -78,17 +79,18 @@ export function Sidebar() {
         <ul className="space-y-4">
           {menuItems.map((item) => (
             <li key={item.href}>
-              <a
-                href={item.href}
-                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                onClick={() => {
-                  navigate(item.href)
-                  setIsOpen(false)
-                }}
+              <Link
+                to={item.href}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                  location.pathname === item.href
+                    ? 'bg-blue-900'
+                    : 'hover:bg-blue-700'
+                }`}
+                onClick={() => setIsOpen(false)}
               >
                 <item.icon size={20} />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

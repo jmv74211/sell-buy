@@ -20,6 +20,9 @@ export function SalesPage() {
     sale_date: new Date().toISOString().split('T')[0],
     amount: '',
   })
+  const [purchaseSearch, setPurchaseSearch] = React.useState('')
+  const [showPurchaseDropdown, setShowPurchaseDropdown] = React.useState(false)
+  const purchaseInputRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     loadData()
@@ -41,20 +44,34 @@ export function SalesPage() {
   }
 
   const getAvailablePurchases = () => {
-    // Filter purchases that don't have a sale associated
+    // Include purchases without a sale, plus the currently-edited sale's purchase
     return purchases.filter((purchase) => {
       const estimation = estimations.find((e) => e.purchase_id === purchase.id)
-      return !estimation || !estimation.sale_id
+      const hasSale = estimation && estimation.sale_id
+      if (!hasSale) return true
+      // Allow the current purchase when editing
+      if (editingId) {
+        const currentSale = sales.find((s) => s.id === editingId)
+        return currentSale && currentSale.purchase_id === purchase.id
+      }
+      return false
     })
+  }
+
+  const getFilteredPurchases = () => {
+    const available = getAvailablePurchases()
+    if (!purchaseSearch.trim()) return available
+    const q = purchaseSearch.toLowerCase()
+    return available.filter(
+      (p) =>
+        p.article_name.toLowerCase().includes(q) ||
+        p.id.toString().includes(q)
+    )
   }
 
   const getPurchaseName = (purchaseId: number) => {
     const purchase = purchases.find((p) => p.id === purchaseId)
     return purchase ? purchase.article_name : 'Desconocido'
-  }
-
-  const getPurchaseId = (purchaseId: number) => {
-    return purchaseId
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +97,7 @@ export function SalesPage() {
         sale_date: new Date().toISOString().split('T')[0],
         amount: '',
       })
+      setPurchaseSearch('')
       setEditingId(null)
     } catch (error) {
       console.error('Error saving sale:', error)
@@ -104,6 +122,8 @@ export function SalesPage() {
       sale_date: sale.sale_date.split('T')[0],
       amount: sale.amount.toString(),
     })
+    const purchase = purchases.find((p) => p.id === sale.purchase_id)
+    setPurchaseSearch(purchase ? `(${purchase.id}) - ${purchase.article_name}` : '')
     setShowModal(true)
   }
 
@@ -124,6 +144,7 @@ export function SalesPage() {
                 sale_date: new Date().toISOString().split('T')[0],
                 amount: '',
               })
+              setPurchaseSearch('')
               setShowModal(true)
             }}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
@@ -193,21 +214,56 @@ export function SalesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Compra</label>
-              <select
-                value={formData.purchase_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, purchase_id: e.target.value })
-                }
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              >
-                <option value="">Selecciona una compra</option>
-                {getAvailablePurchases().map((purchase) => (
-                  <option key={purchase.id} value={purchase.id}>
-                    ({purchase.id}) - {purchase.article_name}
-                  </option>
-                ))}
-              </select>
+              <div ref={purchaseInputRef} className="relative">
+                <input
+                  type="text"
+                  value={purchaseSearch}
+                  onChange={(e) => {
+                    setPurchaseSearch(e.target.value)
+                    setFormData({ ...formData, purchase_id: '' })
+                    setShowPurchaseDropdown(true)
+                  }}
+                  onFocus={() => setShowPurchaseDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPurchaseDropdown(false), 150)}
+                  placeholder="Escribe para buscar por nombre o ID..."
+                  className="w-full border rounded-lg px-3 py-2"
+                  required={!formData.purchase_id}
+                  autoComplete="off"
+                />
+                {/* Hidden input to enforce required validation on the actual ID */}
+                <input
+                  type="text"
+                  value={formData.purchase_id}
+                  required
+                  readOnly
+                  className="sr-only"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+                {showPurchaseDropdown && getFilteredPurchases().length > 0 && (
+                  <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                    {getFilteredPurchases().map((purchase) => (
+                      <li
+                        key={purchase.id}
+                        onMouseDown={() => {
+                          setFormData({ ...formData, purchase_id: purchase.id.toString() })
+                          setPurchaseSearch(`(${purchase.id}) - ${purchase.article_name}`)
+                          setShowPurchaseDropdown(false)
+                        }}
+                        className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                      >
+                        <span className="font-medium text-gray-500 mr-2">({purchase.id})</span>
+                        {purchase.article_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {showPurchaseDropdown && purchaseSearch.trim() !== '' && getFilteredPurchases().length === 0 && (
+                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 px-3 py-2 text-sm text-gray-500">
+                    No se encontraron artículos
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha</label>
