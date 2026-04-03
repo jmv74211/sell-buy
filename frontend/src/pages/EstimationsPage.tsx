@@ -165,6 +165,9 @@ export function EstimationsPage() {
   const getFilteredAndSortedEstimations = () => {
     let filtered = estimations
 
+    // Solo mostrar estimaciones con precio estimado > 0
+    filtered = filtered.filter((estimation) => estimation.estimated_sale_price && estimation.estimated_sale_price > 0)
+
     // Aplicar filtro de búsqueda
     if (tableSearchText.trim()) {
       const q = tableSearchText.toLowerCase()

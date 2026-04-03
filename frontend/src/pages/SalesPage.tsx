@@ -54,17 +54,27 @@ export function SalesPage() {
   }
 
   const getAvailablePurchases = () => {
-    // Include purchases without a sale, plus the currently-edited sale's purchase
+    // Include purchases without a sale AND with valid estimation (> 0)
     return purchases.filter((purchase) => {
       const estimation = estimations.find((e) => e.purchase_id === purchase.id)
       const hasSale = estimation && estimation.sale_id
-      if (!hasSale) return true
-      // Allow the current purchase when editing
-      if (editingId) {
-        const currentSale = sales.find((s) => s.id === editingId)
-        return currentSale && currentSale.purchase_id === purchase.id
+
+      // If already has a sale, exclude it (unless editing)
+      if (hasSale) {
+        // Allow the current purchase when editing
+        if (editingId) {
+          const currentSale = sales.find((s) => s.id === editingId)
+          return currentSale && currentSale.purchase_id === purchase.id
+        }
+        return false
       }
-      return false
+
+      // Must have an estimation with estimated_sale_price > 0
+      if (!estimation || !estimation.estimated_sale_price || estimation.estimated_sale_price === 0) {
+        return false
+      }
+
+      return true
     })
   }
 

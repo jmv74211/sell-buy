@@ -87,6 +87,9 @@ export function DashboardPage() {
       }
 
       // Calculate custom statistics — same formulas as the spreadsheet
+      // Filtrar estimaciones válidas (con precio estimado > 0)
+      const validEstimations = estimationsData.filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
+
       // TOTAL GASTADO = SUM(PRECIO COMPRA)
       const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
 
@@ -101,14 +104,14 @@ export function DashboardPage() {
       }
 
       // TOTAL GANADO = SUM(GANANCIA NETA)
-      const totalEarned = estimationsData.reduce((sum, e) => sum + gananciaNeta(e), 0)
+      const totalEarned = validEstimations.reduce((sum, e) => sum + gananciaNeta(e), 0)
 
       // SALDO RECUPERADO ESTIMADO = SUM(ESTIMACIÓN VENTA) - SUM(GANANCIA NETA)
-      const sumEstVenta = estimationsData.reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
+      const sumEstVenta = validEstimations.reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
       const recoveredEstimated = sumEstVenta - totalEarned
 
       // TOTAL ESPERADO GANAR = SUM(GANANCIA ESTIMADA)
-      const totalExpectedProfit = estimationsData.reduce((sum, e) => sum + e.estimated_profit, 0)
+      const totalExpectedProfit = validEstimations.reduce((sum, e) => sum + e.estimated_profit, 0)
 
       // SALDO = SALDO_RECUPERADO - TOTAL_GASTADO + TOTAL_GANADO
       const totalBalance = recoveredEstimated - totalSpent + totalEarned

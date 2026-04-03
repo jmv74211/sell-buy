@@ -25,6 +25,16 @@ def reset_database(db: Session):
 
     print("✅ Base de datos limpiada")
 
+def cleanup_invalid_estimations(db: Session):
+    """Elimina estimaciones sin precio estimado o con precio 0"""
+    invalid_count = db.query(models.Estimation).filter(
+        (models.Estimation.estimated_sale_price == None) |
+        (models.Estimation.estimated_sale_price == 0)
+    ).delete()
+    db.commit()
+    if invalid_count > 0:
+        print(f"🧹 Limpias: {invalid_count} estimaciones sin precio válido fueron eliminadas")
+
 def parse_decimal(value_str):
     """Convierte string a Decimal, manejando comas y espacios"""
     if not value_str or value_str.strip() == '':
@@ -128,19 +138,20 @@ def import_csv_data(db: Session, csv_path: str):
                     db.flush()
                     sales_created += 1
 
-                # Crear Estimation
-                # El estimated_profit usa SIEMPRE la columna GANANCIA ESTIMADA del CSV
-                estimated_profit_to_use = estimated_profit_val
+                # Crear Estimation solo si tiene precio estimado > 0
+                if estimation_price > 0:
+                    # El estimated_profit usa SIEMPRE la columna GANANCIA ESTIMADA del CSV
+                    estimated_profit_to_use = estimated_profit_val
 
-                estimation = models.Estimation(
-                    purchase_id=purchase.id,
-                    sale_id=sale.id if sale else None,
-                    estimated_profit=estimated_profit_to_use,
-                    estimated_sale_price=estimation_price if estimation_price > 0 else None,
-                    actual_profit=actual_profit_val if actual_profit_val != 0 else None
-                )
-                db.add(estimation)
-                estimations_created += 1
+                    estimation = models.Estimation(
+                        purchase_id=purchase.id,
+                        sale_id=sale.id if sale else None,
+                        estimated_profit=estimated_profit_to_use,
+                        estimated_sale_price=estimation_price,
+                        actual_profit=actual_profit_val if actual_profit_val != 0 else None
+                    )
+                    db.add(estimation)
+                    estimations_created += 1
 
                 if idx % 10 == 0:
                     print(f"  ✓ {idx} artículos procesados...")
@@ -152,6 +163,10 @@ def import_csv_data(db: Session, csv_path: str):
 
         # Confirmar cambios
         db.commit()
+
+        # Limpiar estimaciones inválidas después de importar
+        cleanup_invalid_estimations(db)
+
         print(f"\n✨ Importación completada:")
         print(f"   📦 {purchases_created} compras creadas")
         print(f"   💰 {sales_created} ventas creadas")
@@ -185,6 +200,9 @@ def main():
 
         # Importar datos
         import_csv_data(db, csv_path)
+
+        # Limpiar estimaciones inválidas después de importación
+        cleanup_invalid_estimations(db)
 
         print("\n" + "=" * 60)
         print("✅ Proceso completado exitosamente!")
