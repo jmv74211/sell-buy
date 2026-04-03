@@ -74,6 +74,8 @@ export function PurchasesPage() {
       })
       showToast('success', editingId ? 'Compra actualizada correctamente' : 'Compra creada correctamente')
       setEditingId(null)
+      // Notify dashboard to refresh
+      localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
       showToast('error', 'Error al guardar la compra')
       console.error('Error saving purchase:', error)
@@ -214,16 +216,24 @@ export function PurchasesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Nombre del Artículo</label>
-              <input
-                type="text"
-                value={formData.article_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, article_name: e.target.value })
-                }
-                className="w-full border rounded-lg px-3 py-2"
-                placeholder="Ej: iPhone 13, PlayStation 5"
-                required
-              />
+              {editingId ? (
+                // Show as read-only text when editing
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-700 flex items-center">
+                  {formData.article_name}
+                </div>
+              ) : (
+                // Show as editable input when creating
+                <input
+                  type="text"
+                  value={formData.article_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, article_name: e.target.value })
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="Ej: iPhone 13, PlayStation 5"
+                  required
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha</label>

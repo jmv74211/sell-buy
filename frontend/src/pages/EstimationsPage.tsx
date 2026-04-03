@@ -79,8 +79,15 @@ export function EstimationsPage() {
 
   const getAvailablePurchases = () => {
     // Filter purchases that don't have an estimation already
+    // But include the current one if we're editing
     return purchases.filter((purchase) => {
-      return !estimations.some((e) => e.purchase_id === purchase.id)
+      const hasEstimation = estimations.some((e) => e.purchase_id === purchase.id)
+      if (editingId) {
+        // When editing, include the current purchase even if it has an estimation
+        const currentEstimation = estimations.find(e => e.id === editingId)
+        return !hasEstimation || purchase.id === currentEstimation?.purchase_id
+      }
+      return !hasEstimation
     })
   }
 
@@ -118,6 +125,8 @@ export function EstimationsPage() {
       })
       showToast('success', editingId ? 'Estimación actualizada correctamente' : 'Estimación creada correctamente')
       setEditingId(null)
+      // Notify dashboard to refresh
+      localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
       showToast('error', 'Error al guardar la estimación')
       console.error('Error saving estimation:', error)
@@ -291,22 +300,30 @@ export function EstimationsPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Compra</label>
-              <select
-                value={formData.purchase_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, purchase_id: e.target.value })
-                }
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              >
-                <option value="">Selecciona una compra</option>
-                {getAvailablePurchases().map((purchase) => (
-                  <option key={purchase.id} value={purchase.id}>
-                    ({purchase.id}) - {purchase.article_name}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-1">Artículo</label>
+              {editingId ? (
+                // Show as read-only text when editing
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-700 flex items-center">
+                  {getArticleName(parseInt(formData.purchase_id))}
+                </div>
+              ) : (
+                // Show as select when creating
+                <select
+                  value={formData.purchase_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, purchase_id: e.target.value })
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                  required
+                >
+                  <option value="">Selecciona una compra</option>
+                  {getAvailablePurchases().map((purchase) => (
+                    <option key={purchase.id} value={purchase.id}>
+                      ({purchase.id}) - {purchase.article_name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">

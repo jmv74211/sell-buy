@@ -128,7 +128,7 @@ def update_sale(
             ).first()
             if same_purchase:
                 estimation.actual_profit = db_sale.amount - same_purchase.amount
-            db.commit()
+        db.commit()
 
     return db_sale
 

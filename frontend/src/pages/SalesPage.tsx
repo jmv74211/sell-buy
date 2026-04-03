@@ -109,6 +109,8 @@ export function SalesPage() {
       setPurchaseSearch('')
       showToast('success', editingId ? 'Venta actualizada correctamente' : 'Venta creada correctamente')
       setEditingId(null)
+      // Notify dashboard to refresh
+      localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
       showToast('error', 'Error al guardar la venta')
       console.error('Error saving sale:', error)
@@ -248,56 +250,64 @@ export function SalesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Compra</label>
-              <div ref={purchaseInputRef} className="relative">
-                <input
-                  type="text"
-                  value={purchaseSearch}
-                  onChange={(e) => {
-                    setPurchaseSearch(e.target.value)
-                    setFormData({ ...formData, purchase_id: '' })
-                    setShowPurchaseDropdown(true)
-                  }}
-                  onFocus={() => setShowPurchaseDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowPurchaseDropdown(false), 150)}
-                  placeholder="Escribe para buscar por nombre o ID..."
-                  className="w-full border rounded-lg px-3 py-2"
-                  required={!formData.purchase_id}
-                  autoComplete="off"
-                />
-                {/* Hidden input to enforce required validation on the actual ID */}
-                <input
-                  type="text"
-                  value={formData.purchase_id}
-                  required
-                  readOnly
-                  className="sr-only"
-                  aria-hidden="true"
-                  tabIndex={-1}
-                />
-                {showPurchaseDropdown && getFilteredPurchases().length > 0 && (
-                  <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                    {getFilteredPurchases().map((purchase) => (
-                      <li
-                        key={purchase.id}
-                        onMouseDown={() => {
-                          setFormData({ ...formData, purchase_id: purchase.id.toString() })
-                          setPurchaseSearch(`(${purchase.id}) - ${purchase.article_name}`)
-                          setShowPurchaseDropdown(false)
-                        }}
-                        className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm"
-                      >
-                        <span className="font-medium text-gray-500 mr-2">({purchase.id})</span>
-                        {purchase.article_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {showPurchaseDropdown && purchaseSearch.trim() !== '' && getFilteredPurchases().length === 0 && (
-                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 px-3 py-2 text-sm text-gray-500">
-                    No se encontraron artículos
-                  </div>
-                )}
-              </div>
+              {editingId ? (
+                // Show as read-only text when editing
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-700 flex items-center">
+                  {purchaseSearch}
+                </div>
+              ) : (
+                // Show as searchable input when creating
+                <div ref={purchaseInputRef} className="relative">
+                  <input
+                    type="text"
+                    value={purchaseSearch}
+                    onChange={(e) => {
+                      setPurchaseSearch(e.target.value)
+                      setFormData({ ...formData, purchase_id: '' })
+                      setShowPurchaseDropdown(true)
+                    }}
+                    onFocus={() => setShowPurchaseDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPurchaseDropdown(false), 150)}
+                    placeholder="Escribe para buscar por nombre o ID..."
+                    className="w-full border rounded-lg px-3 py-2"
+                    required={!formData.purchase_id}
+                    autoComplete="off"
+                  />
+                  {/* Hidden input to enforce required validation on the actual ID */}
+                  <input
+                    type="text"
+                    value={formData.purchase_id}
+                    required
+                    readOnly
+                    className="sr-only"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                  />
+                  {showPurchaseDropdown && getFilteredPurchases().length > 0 && (
+                    <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                      {getFilteredPurchases().map((purchase) => (
+                        <li
+                          key={purchase.id}
+                          onMouseDown={() => {
+                            setFormData({ ...formData, purchase_id: purchase.id.toString() })
+                            setPurchaseSearch(`(${purchase.id}) - ${purchase.article_name}`)
+                            setShowPurchaseDropdown(false)
+                          }}
+                          className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                        >
+                          <span className="font-medium text-gray-500 mr-2">({purchase.id})</span>
+                          {purchase.article_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {showPurchaseDropdown && purchaseSearch.trim() !== '' && getFilteredPurchases().length === 0 && (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 px-3 py-2 text-sm text-gray-500">
+                      No se encontraron artículos
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha</label>

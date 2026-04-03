@@ -157,7 +157,31 @@ export function DashboardPage() {
 
   React.useEffect(() => {
     loadData()
-  }, [loadData, location.key])
+  }, [loadData])
+
+  // Recargar datos cuando el usuario vuelve a la página (visibility change)
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [loadData])
+
+  // Recargar datos cuando se actualiza una venta desde SalesPage o compra desde PurchasesPage
+  React.useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'refreshDashboard') {
+        loadData()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [loadData])
 
   const handleTableSort = (key: string) => {
     if (tableSortKey === key) setTableSortDir(d => d === 'asc' ? 'desc' : 'asc')
