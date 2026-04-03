@@ -41,7 +41,6 @@ class PurchaseBase(BaseModel):
     article_name: str
     purchase_date: date
     amount: Decimal
-    item_condition: int
     platform_id: Optional[int] = None
 
 class PurchaseCreate(PurchaseBase):
@@ -53,7 +52,6 @@ class PurchaseResponse(BaseModel):
     article_name: str
     purchase_date: datetime
     amount: float
-    item_condition: int
     platform_id: Optional[int] = None
     created_at: datetime
 

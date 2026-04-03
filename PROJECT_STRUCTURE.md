@@ -91,7 +91,7 @@ users (id, user_name, password_hash, name, email, active, first_login_date, last
 platforms (id, name, url)
 
 -- Artículos
-articles (id, user_id→, name, description, precio, item_condition, platform_id→, created_at)
+articles (id, user_id→, name, description, precio, platform_id→, created_at)
 
 -- Compras
 purchases (id, article_id→, purchase_date, amount, created_at)

@@ -64,7 +64,6 @@ def main():
                 article_name=article,
                 purchase_date=datetime.strptime(p_date_s, "%Y-%m-%d"),
                 amount=Decimal(str(p_amount)),
-                item_condition=7,
                 platform_id=None,
             )
             db.add(purchase)

@@ -21,7 +21,6 @@ export interface Purchase {
   article_name: string
   purchase_date: string
   amount: number
-  item_condition: number
   platform_id: number | null
   created_at: string
 }

@@ -119,7 +119,6 @@ def import_csv_data(db: Session, csv_path: str):
                     article_name=article_name,
                     purchase_date=purchase_date,
                     amount=purchase_price,
-                    item_condition=7,  # Valor por defecto
                     platform_id=None
                 )
                 db.add(purchase)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric, CheckConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -35,7 +35,6 @@ class Purchase(Base):
     article_name = Column(String(255), nullable=False)
     purchase_date = Column(DateTime, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    item_condition = Column(Integer, CheckConstraint("item_condition >= 1 AND item_condition <= 10"), nullable=False)
     platform_id = Column(Integer, ForeignKey("platforms.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 

@@ -25,7 +25,6 @@ export function PurchasesPage() {
     article_name: '',
     purchase_date: new Date().toISOString().split('T')[0],
     amount: '',
-    item_condition: 5,
     platform_id: null as number | null,
   })
 
@@ -52,7 +51,6 @@ export function PurchasesPage() {
           article_name: formData.article_name,
           purchase_date: formData.purchase_date,
           amount: parseFloat(formData.amount),
-          item_condition: formData.item_condition,
           platform_id: formData.platform_id,
         } as any)
       } else {
@@ -60,7 +58,6 @@ export function PurchasesPage() {
           article_name: formData.article_name,
           purchase_date: formData.purchase_date,
           amount: parseFloat(formData.amount),
-          item_condition: formData.item_condition,
           platform_id: formData.platform_id,
         } as any)
       }
@@ -70,7 +67,6 @@ export function PurchasesPage() {
         article_name: '',
         purchase_date: new Date().toISOString().split('T')[0],
         amount: '',
-        item_condition: 5,
         platform_id: null,
       })
       showToast('success', editingId ? 'Compra actualizada correctamente' : 'Compra creada correctamente')
@@ -107,7 +103,6 @@ export function PurchasesPage() {
       article_name: purchase.article_name,
       purchase_date: purchase.purchase_date.split('T')[0],
       amount: purchase.amount.toString(),
-      item_condition: purchase.item_condition,
       platform_id: purchase.platform_id,
     })
     setShowModal(true)
@@ -161,7 +156,6 @@ export function PurchasesPage() {
                 article_name: '',
                 purchase_date: new Date().toISOString().split('T')[0],
                 amount: '',
-                item_condition: 5,
                 platform_id: null,
               })
               setShowModal(true)
@@ -284,20 +278,6 @@ export function PurchasesPage() {
                 value={formData.amount}
                 onChange={(e) =>
                   setFormData({ ...formData, amount: e.target.value })
-                }
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Condición del Artículo (1-10)</label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={formData.item_condition}
-                onChange={(e) =>
-                  setFormData({ ...formData, item_condition: parseInt(e.target.value) })
                 }
                 className="w-full border rounded-lg px-3 py-2"
                 required

@@ -109,7 +109,6 @@ def import_csv(
                 article_name=article_name,
                 purchase_date=purchase_date,
                 amount=purchase_price,
-                item_condition=7,
                 platform_id=None,
             )
             db.add(purchase)
