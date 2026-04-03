@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
-import { Plus, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronUp, ChevronDown, CheckCircle, XCircle } from 'lucide-react'
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
@@ -17,9 +17,16 @@ export function EstimationsPage() {
   const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
+  const [deleteId, setDeleteId] = React.useState<number | null>(null)
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg })
+    setTimeout(() => setToast(null), 4000)
+  }
   const [formData, setFormData] = React.useState({
     purchase_id: '',
-    estimated_profit: '',
+    estimated_sale_price: '',
   })
 
   React.useEffect(() => {
@@ -86,37 +93,53 @@ export function EstimationsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const purchaseId = parseInt(formData.purchase_id)
+      const estSalePrice = formData.estimated_sale_price ? parseFloat(formData.estimated_sale_price) : null
+      const purchaseAmount = getPurchaseAmount(purchaseId)
+      const estProfit = estSalePrice != null ? estSalePrice - purchaseAmount : 0
       if (editingId) {
         await estimationService.update(editingId, {
-          purchase_id: parseInt(formData.purchase_id),
-          estimated_profit: parseFloat(formData.estimated_profit),
+          purchase_id: purchaseId,
+          estimated_sale_price: estSalePrice,
+          estimated_profit: estProfit,
         } as any)
       } else {
         await estimationService.create({
-          purchase_id: parseInt(formData.purchase_id),
-          estimated_profit: parseFloat(formData.estimated_profit),
+          purchase_id: purchaseId,
+          estimated_sale_price: estSalePrice,
+          estimated_profit: estProfit,
         } as any)
       }
       await loadData()
       setShowModal(false)
       setFormData({
         purchase_id: '',
-        estimated_profit: '',
+        estimated_sale_price: '',
       })
+      showToast('success', editingId ? 'Estimación actualizada correctamente' : 'Estimación creada correctamente')
       setEditingId(null)
     } catch (error) {
+      showToast('error', 'Error al guardar la estimación')
       console.error('Error saving estimation:', error)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm('¿Estás seguro de que deseas eliminar esta estimación?')) {
-      try {
-        await estimationService.delete(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting estimation:', error)
-      }
+    setDeleteId(id)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return
+    try {
+      await estimationService.delete(deleteId)
+      setDeleteId(null)
+      await loadData()
+      showToast('success', 'Estimación eliminada correctamente')
+    } catch (error: any) {
+      const detail = error.response?.data?.detail || error.message || 'Error desconocido'
+      showToast('error', `Error al eliminar: ${detail}`)
+      console.error('Error deleting estimation:', error)
+      setDeleteId(null)
     }
   }
 
@@ -124,7 +147,7 @@ export function EstimationsPage() {
     setEditingId(estimation.id)
     setFormData({
       purchase_id: estimation.purchase_id.toString(),
-      estimated_profit: estimation.estimated_profit.toString(),
+      estimated_sale_price: estimation.estimated_sale_price?.toString() ?? '',
     })
     setShowModal(true)
   }
@@ -139,6 +162,7 @@ export function EstimationsPage() {
   const sortedEstimations = [...estimations].sort((a, b) => {
     let av: any, bv: any
     if (sortKey === 'name') { av = getArticleName(a.purchase_id).toLowerCase(); bv = getArticleName(b.purchase_id).toLowerCase() }
+    else if (sortKey === 'estSalePrice') { av = a.estimated_sale_price ?? -Infinity; bv = b.estimated_sale_price ?? -Infinity }
     else if (sortKey === 'estimated') { av = a.estimated_profit; bv = b.estimated_profit }
     else if (sortKey === 'actual') { av = a.actual_profit ?? -Infinity; bv = b.actual_profit ?? -Infinity }
     else { av = a.purchase_id; bv = b.purchase_id }
@@ -159,7 +183,7 @@ export function EstimationsPage() {
               setEditingId(null)
               setFormData({
                 purchase_id: '',
-                estimated_profit: '',
+                estimated_sale_price: '',
               })
               setShowModal(true)
             }}
@@ -179,6 +203,9 @@ export function EstimationsPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('estSalePrice')}>
+                    Precio Est. Venta <SortIcon col="estSalePrice" />
+                  </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('estimated')}>
                     Ganancia Estimada <SortIcon col="estimated" />
                   </th>
@@ -202,6 +229,11 @@ export function EstimationsPage() {
                         <td className="px-6 py-4">{estimation.purchase_id}</td>
                         <td className="px-6 py-4">
                           {getArticleName(estimation.purchase_id)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-blue-600">
+                            {estimation.estimated_sale_price != null ? `${Number(estimation.estimated_sale_price).toFixed(2)}€` : '—'}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -242,7 +274,7 @@ export function EstimationsPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-600">
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-600">
                       No hay estimaciones registradas
                     </td>
                   </tr>
@@ -278,18 +310,17 @@ export function EstimationsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
-                Ganancia Estimada
+                Precio Estimado de Venta (€)
               </label>
               <input
                 type="number"
                 step="0.01"
-                value={formData.estimated_profit}
+                value={formData.estimated_sale_price}
                 onChange={(e) =>
-                  setFormData({ ...formData, estimated_profit: e.target.value })
+                  setFormData({ ...formData, estimated_sale_price: e.target.value })
                 }
                 className="w-full border rounded-lg px-3 py-2"
-                placeholder="Ej: 150.00"
-                required
+                placeholder="Ej: 350.00"
               />
             </div>
             <button
@@ -300,6 +331,42 @@ export function EstimationsPage() {
             </button>
           </form>
         </Modal>
+
+        {/* Confirm delete modal */}
+        {deleteId !== null && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6">
+              <h2 className="text-lg font-bold mb-3">Eliminar estimación</h2>
+              <p className="text-gray-700 mb-6">¿Estás seguro de que deseas eliminar esta estimación?</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {toast && (
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-5 py-4 rounded-lg shadow-lg text-white max-w-sm ${
+            toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+          }`}>
+            {toast.type === 'success'
+              ? <CheckCircle size={20} className="mt-0.5 shrink-0" />
+              : <XCircle size={20} className="mt-0.5 shrink-0" />
+            }
+            <span className="text-sm">{toast.msg}</span>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
-import { Plus, Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronUp, ChevronDown, CheckCircle, XCircle } from 'lucide-react'
 import { purchaseService } from '@/services/purchases'
 import type { Purchase } from '@/types/api'
 import { formatDate } from '@/utils/date'
@@ -13,6 +13,13 @@ export function PurchasesPage() {
   const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [showModal, setShowModal] = React.useState(false)
   const [editingId, setEditingId] = React.useState<number | null>(null)
+  const [deleteId, setDeleteId] = React.useState<number | null>(null)
+  const [toast, setToast] = React.useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg })
+    setTimeout(() => setToast(null), 4000)
+  }
   const [formData, setFormData] = React.useState({
     article_name: '',
     purchase_date: new Date().toISOString().split('T')[0],
@@ -65,20 +72,29 @@ export function PurchasesPage() {
         item_condition: 5,
         platform_id: null,
       })
+      showToast('success', editingId ? 'Compra actualizada correctamente' : 'Compra creada correctamente')
       setEditingId(null)
     } catch (error) {
+      showToast('error', 'Error al guardar la compra')
       console.error('Error saving purchase:', error)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm('¿Estás seguro de que deseas eliminar esta compra?')) {
-      try {
-        await purchaseService.delete(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting purchase:', error)
-      }
+    setDeleteId(id)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return
+    try {
+      await purchaseService.delete(deleteId)
+      setDeleteId(null)
+      await loadData()
+      showToast('success', 'Compra eliminada correctamente')
+    } catch (error) {
+      showToast('error', 'Error al eliminar la compra')
+      console.error('Error deleting purchase:', error)
+      setDeleteId(null)
     }
   }
 
@@ -256,6 +272,41 @@ export function PurchasesPage() {
             </button>
           </form>
         </Modal>
+
+        {deleteId !== null && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6">
+              <h2 className="text-lg font-bold mb-3">Eliminar compra</h2>
+              <p className="text-gray-700 mb-6">¿Estás seguro de que deseas eliminar esta compra?</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {toast && (
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-5 py-4 rounded-lg shadow-lg text-white max-w-sm ${
+            toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+          }`}>
+            {toast.type === 'success'
+              ? <CheckCircle size={20} className="mt-0.5 shrink-0" />
+              : <XCircle size={20} className="mt-0.5 shrink-0" />
+            }
+            <span className="text-sm">{toast.msg}</span>
+          </div>
+        )}
       </main>
     </div>
   )

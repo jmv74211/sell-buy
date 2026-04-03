@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 import { Package, TrendingUp, Activity, Wallet, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
@@ -19,6 +20,7 @@ import {
 } from 'recharts'
 
 export function DashboardPage() {
+  const location = useLocation()
   const [stats, setStats] = React.useState<SummaryStats | null>(null)
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
@@ -84,31 +86,32 @@ export function DashboardPage() {
         setSelectedDate(latestDate)
       }
 
-      // Calculate custom statistics
+      // Calculate custom statistics — same formulas as the spreadsheet
+      // TOTAL GASTADO = SUM(PRECIO COMPRA)
       const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
 
-      // SALDO RECUPERADO ESTIMADO = Σ(ESTIMACIÓN VENTA > 0) - Σ(GANANCIA NETA > 0 para vendidos)
-      // Usa actual_profit (columna GANANCIA NETA del CSV) en lugar de sale - purchase
-      const sumEstimatedSalePrices = estimationsData
-        .filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
-        .reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
+      // GANANCIA NETA por artículo: usa actual_profit guardado (puede incluir comisiones)
+      // Si no hay actual_profit guardado, calcula venta - compra como fallback
+      const gananciaNeta = (e: Estimation) => {
+        if (!e.sale_id) return 0
+        if (e.actual_profit != null) return e.actual_profit
+        const sale = salesData.find(s => s.id === e.sale_id)
+        const purchase = purchasesData.find(p => p.id === e.purchase_id)
+        return sale && purchase ? sale.amount - purchase.amount : 0
+      }
 
-      const sumRealizedProfits = estimationsData
-        .filter(e => e.sale_id && e.actual_profit && e.actual_profit > 0)
-        .reduce((sum, e) => sum + (e.actual_profit ?? 0), 0)
+      // TOTAL GANADO = SUM(GANANCIA NETA)
+      const totalEarned = estimationsData.reduce((sum, e) => sum + gananciaNeta(e), 0)
 
-      const recoveredEstimated = sumEstimatedSalePrices - sumRealizedProfits
+      // SALDO RECUPERADO ESTIMADO = SUM(ESTIMACIÓN VENTA) - SUM(GANANCIA NETA)
+      const sumEstVenta = estimationsData.reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
+      const recoveredEstimated = sumEstVenta - totalEarned
 
-      // TOTAL ESPERADO GANAR = Σ(estimated_profit) para todos los items (columna GANANCIA ESTIMADA)
+      // TOTAL ESPERADO GANAR = SUM(GANANCIA ESTIMADA)
       const totalExpectedProfit = estimationsData.reduce((sum, e) => sum + e.estimated_profit, 0)
 
-      // TOTAL GANADO = Σ(actual_profit) para items vendidos (columna GANANCIA NETA del CSV)
-      const totalEarned = estimationsData
-        .filter(e => e.sale_id)
-        .reduce((sum, e) => sum + (e.actual_profit ?? 0), 0)
-
-      // Saldo Total = Saldo Recuperado Estimado + Total Ganado - Total Gastado
-      const totalBalance = recoveredEstimated + totalEarned - totalSpent
+      // SALDO = SALDO_RECUPERADO - TOTAL_GASTADO + TOTAL_GANADO
+      const totalBalance = recoveredEstimated - totalSpent + totalEarned
 
       setCustomStats({
         totalSpent,
@@ -154,7 +157,7 @@ export function DashboardPage() {
 
   React.useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, location.key])
 
   const handleTableSort = (key: string) => {
     if (tableSortKey === key) setTableSortDir(d => d === 'asc' ? 'desc' : 'asc')

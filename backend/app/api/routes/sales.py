@@ -44,8 +44,9 @@ def create_sale(
     ).first()
 
     if estimation:
-        # Update existing estimation with sale_id
+        # Update existing estimation with sale_id and actual_profit
         estimation.sale_id = db_sale.id
+        estimation.actual_profit = db_sale.amount - purchase.amount
         db.commit()
         db.refresh(estimation)
     else:
@@ -53,7 +54,8 @@ def create_sale(
         new_estimation = models.Estimation(
             purchase_id=sale.purchase_id,
             sale_id=db_sale.id,
-            estimated_profit=db_sale.amount - purchase.amount
+            estimated_profit=db_sale.amount - purchase.amount,
+            actual_profit=db_sale.amount - purchase.amount,
         )
         db.add(new_estimation)
         db.commit()
@@ -95,21 +97,38 @@ def update_sale(
 
     # If purchase_id changed, update estimations
     if old_purchase_id != db_sale.purchase_id:
-        # Clear sale_id from old estimation
+        # Clear sale_id and actual_profit from old estimation
         old_estimation = db.query(models.Estimation).filter(
             models.Estimation.purchase_id == old_purchase_id
         ).first()
         if old_estimation:
             old_estimation.sale_id = None
+            old_estimation.actual_profit = None
 
-        # Set sale_id in new estimation
+        # Set sale_id and actual_profit in new estimation
+        new_purchase = db.query(models.Purchase).filter(
+            models.Purchase.id == db_sale.purchase_id
+        ).first()
         new_estimation = db.query(models.Estimation).filter(
             models.Estimation.purchase_id == db_sale.purchase_id
         ).first()
-        if new_estimation:
+        if new_estimation and new_purchase:
             new_estimation.sale_id = db_sale.id
+            new_estimation.actual_profit = db_sale.amount - new_purchase.amount
 
         db.commit()
+    else:
+        # Same purchase_id: update actual_profit if sale amount changed
+        estimation = db.query(models.Estimation).filter(
+            models.Estimation.purchase_id == db_sale.purchase_id
+        ).first()
+        if estimation and estimation.sale_id == db_sale.id:
+            same_purchase = db.query(models.Purchase).filter(
+                models.Purchase.id == db_sale.purchase_id
+            ).first()
+            if same_purchase:
+                estimation.actual_profit = db_sale.amount - same_purchase.amount
+            db.commit()
 
     return db_sale
 
@@ -132,6 +151,7 @@ def delete_sale(
 
     if estimation:
         estimation.sale_id = None
+        estimation.actual_profit = None
         db.commit()
 
     db.delete(db_sale)

@@ -100,6 +100,10 @@ def delete_estimation(
     if not db_estimation:
         raise HTTPException(status_code=404, detail="Estimation not found")
 
+    # Desvincular la venta antes de borrar para evitar conflictos de FK/cascade
+    db_estimation.sale_id = None
+    db.flush()
+
     db.delete(db_estimation)
     db.commit()
     return {"detail": "Estimation deleted"}

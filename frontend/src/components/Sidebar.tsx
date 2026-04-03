@@ -84,35 +84,29 @@ export function Sidebar() {
         return n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
       }
 
-      // Compute summary statistics
+      // Compute summary statistics — same formulas as the spreadsheet
       const totalGastado = purchases.reduce((s, p) => s + p.amount, 0)
-      const withEsp = estimations.filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
-      const sumEstVenta = withEsp.reduce((s, e) => s + (e.estimated_sale_price ?? 0), 0)
-      const sumGananciaNetaGt0 = estimations.reduce((s, e) => {
-        if (!e.sale_id) return s
+
+      const gananciaNeta = (e: typeof estimations[0]) => {
+        if (!e.sale_id) return 0
+        if (e.actual_profit != null) return e.actual_profit
         const sale = sales.find(sa => sa.id === e.sale_id)
         const purchase = purchases.find(p => p.id === e.purchase_id)
-        if (!sale || !purchase) return s
-        const profit = sale.amount - purchase.amount
-        return profit > 0 ? s + profit : s
-      }, 0)
-      const saldoRecuperado = sumEstVenta - sumGananciaNetaGt0
-      const totalGanado = estimations.reduce((s, e) => {
-        if (!e.sale_id) return s
-        const sale = sales.find(sa => sa.id === e.sale_id)
-        const purchase = purchases.find(p => p.id === e.purchase_id)
-        if (!sale || !purchase) return s
-        return s + (sale.amount - purchase.amount)
-      }, 0)
-      const saldo = saldoRecuperado + totalGanado - totalGastado
-      const totalEsperado = estimations.reduce((s, e) => {
-        if (e.sale_id) {
-          const sale = sales.find(sa => sa.id === e.sale_id)
-          const purchase = purchases.find(p => p.id === e.purchase_id)
-          if (sale && purchase) return s + (sale.amount - purchase.amount)
-        }
-        return s + e.estimated_profit
-      }, 0)
+        return sale && purchase ? sale.amount - purchase.amount : 0
+      }
+
+      // TOTAL GANADO = SUM(GANANCIA NETA)
+      const totalGanado = estimations.reduce((s, e) => s + gananciaNeta(e), 0)
+
+      // SALDO RECUPERADO ESTIMADO = SUM(ESTIMACIÓN VENTA) - SUM(GANANCIA NETA)
+      const sumEstVenta = estimations.reduce((s, e) => s + (e.estimated_sale_price ?? 0), 0)
+      const saldoRecuperado = sumEstVenta - totalGanado
+
+      // TOTAL ESPERADO GANAR = SUM(GANANCIA ESTIMADA)
+      const totalEsperado = estimations.reduce((s, e) => s + e.estimated_profit, 0)
+
+      // SALDO = SALDO_RECUPERADO - TOTAL_GASTADO + TOTAL_GANADO
+      const saldo = saldoRecuperado - totalGastado + totalGanado
 
       // Build CSV rows — same format as the import CSV
       const rows: string[] = []
@@ -297,7 +291,7 @@ export function Sidebar() {
 
       {/* Toast notification */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-start gap-3 px-5 py-4 rounded-lg shadow-lg text-white max-w-sm ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 px-5 py-4 rounded-lg shadow-lg text-white max-w-sm ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
           {toast.type === 'success'
             ? <CheckCircle size={20} className="mt-0.5 shrink-0" />
             : <XCircle size={20} className="mt-0.5 shrink-0" />
