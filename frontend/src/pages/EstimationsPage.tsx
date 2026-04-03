@@ -227,7 +227,7 @@ export function EstimationsPage() {
           <p className="text-gray-600">Cargando...</p>
         ) : (
           <>
-            <div className="mb-4">
+            <div className="mb-4 flex items-center gap-4">
               <input
                 type="text"
                 value={tableSearchText}
@@ -235,6 +235,7 @@ export function EstimationsPage() {
                 placeholder="Buscar por nombre o ID de artículo..."
                 className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
+              <span className="text-sm text-gray-600 whitespace-nowrap">Resultados: <span className="font-semibold text-gray-900">{sortedEstimations.length}</span></span>
             </div>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
