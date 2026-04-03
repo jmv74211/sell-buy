@@ -31,6 +31,7 @@ export function SalesPage() {
   })
   const [purchaseSearch, setPurchaseSearch] = React.useState('')
   const [showPurchaseDropdown, setShowPurchaseDropdown] = React.useState(false)
+  const [tableSearchText, setTableSearchText] = React.useState('')
   const purchaseInputRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -81,6 +82,29 @@ export function SalesPage() {
   const getPurchaseName = (purchaseId: number) => {
     const purchase = purchases.find((p) => p.id === purchaseId)
     return purchase ? purchase.article_name : 'Desconocido'
+  }
+
+  const getFilteredAndSortedSales = () => {
+    let filtered = sales
+
+    // Aplicar filtro de búsqueda
+    if (tableSearchText.trim()) {
+      const q = tableSearchText.toLowerCase()
+      filtered = filtered.filter((sale) => {
+        const articleName = getPurchaseName(sale.purchase_id).toLowerCase()
+        return articleName.includes(q) || sale.purchase_id.toString().includes(q)
+      })
+    }
+
+    // Aplicar ordenamiento
+    return filtered.sort((a, b) => {
+      let av: any, bv: any
+      if (sortKey === 'name') { av = getPurchaseName(a.purchase_id).toLowerCase(); bv = getPurchaseName(b.purchase_id).toLowerCase() }
+      else if (sortKey === 'date') { av = a.sale_date; bv = b.sale_date }
+      else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
+      else { av = a.purchase_id; bv = b.purchase_id }
+      return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,14 +178,7 @@ export function SalesPage() {
   const SortIcon = ({ col }: { col: string }) => sortKey === col
     ? sortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
     : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
-  const sortedSales = [...sales].sort((a, b) => {
-    let av: any, bv: any
-    if (sortKey === 'name') { av = getPurchaseName(a.purchase_id).toLowerCase(); bv = getPurchaseName(b.purchase_id).toLowerCase() }
-    else if (sortKey === 'date') { av = a.sale_date; bv = b.sale_date }
-    else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
-    else { av = a.purchase_id; bv = b.purchase_id }
-    return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
-  })
+  const sortedSales = getFilteredAndSortedSales()
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -193,7 +210,17 @@ export function SalesPage() {
         {loading ? (
           <p className="text-gray-600">Cargando...</p>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                value={tableSearchText}
+                onChange={(e) => setTableSearchText(e.target.value)}
+                placeholder="Buscar por nombre o ID de artículo..."
+                className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
@@ -239,7 +266,8 @@ export function SalesPage() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         <Modal

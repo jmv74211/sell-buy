@@ -15,6 +15,7 @@ export function PurchasesPage() {
   const [editingId, setEditingId] = React.useState<number | null>(null)
   const [deleteId, setDeleteId] = React.useState<number | null>(null)
   const [toast, setToast] = React.useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [tableSearchText, setTableSearchText] = React.useState('')
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -112,6 +113,29 @@ export function PurchasesPage() {
     setShowModal(true)
   }
 
+  const getFilteredAndSortedPurchases = () => {
+    let filtered = purchases
+
+    // Aplicar filtro de búsqueda
+    if (tableSearchText.trim()) {
+      const q = tableSearchText.toLowerCase()
+      filtered = filtered.filter((purchase) =>
+        purchase.article_name.toLowerCase().includes(q) ||
+        purchase.id.toString().includes(q)
+      )
+    }
+
+    // Aplicar ordenamiento
+    return filtered.sort((a, b) => {
+      let av: any, bv: any
+      if (sortKey === 'name') { av = a.article_name.toLowerCase(); bv = b.article_name.toLowerCase() }
+      else if (sortKey === 'date') { av = a.purchase_date; bv = b.purchase_date }
+      else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
+      else { av = a.id; bv = b.id }
+      return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+    })
+  }
+
   const handleSort = (key: string) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
@@ -119,14 +143,7 @@ export function PurchasesPage() {
   const SortIcon = ({ col }: { col: string }) => sortKey === col
     ? sortDir === 'asc' ? <ChevronUp size={14} className="inline ml-1 text-blue-500" /> : <ChevronDown size={14} className="inline ml-1 text-blue-500" />
     : <ChevronUp size={14} className="inline ml-1 text-gray-300" />
-  const sortedPurchases = [...purchases].sort((a, b) => {
-    let av: any, bv: any
-    if (sortKey === 'name') { av = a.article_name.toLowerCase(); bv = b.article_name.toLowerCase() }
-    else if (sortKey === 'date') { av = a.purchase_date; bv = b.purchase_date }
-    else if (sortKey === 'amount') { av = a.amount; bv = b.amount }
-    else { av = a.id; bv = b.id }
-    return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
-  })
+  const sortedPurchases = getFilteredAndSortedPurchases()
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -159,7 +176,17 @@ export function PurchasesPage() {
         {loading ? (
           <p className="text-gray-600">Cargando...</p>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                value={tableSearchText}
+                onChange={(e) => setTableSearchText(e.target.value)}
+                placeholder="Buscar por nombre o ID de artículo..."
+                className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
@@ -205,7 +232,8 @@ export function PurchasesPage() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         <Modal
