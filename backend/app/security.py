@@ -10,7 +10,7 @@ from . import models
 
 SECRET_KEY = config("SECRET_KEY", default="your-secret-key-change-this-in-production")
 ALGORITHM = config("ALGORITHM", default="HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(config("ACCESS_TOKEN_EXPIRE_MINUTES", default="30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(config("ACCESS_TOKEN_EXPIRE_MINUTES", default="10080"))  # 7 days
 
 # Use argon2 for password hashing (no 72-byte limit)
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
