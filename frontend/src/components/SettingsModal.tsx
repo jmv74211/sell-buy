@@ -2,6 +2,7 @@ import React from 'react'
 import { X } from 'lucide-react'
 import { useSettingsStore } from '@/store/settings'
 import { t } from '@/utils/translations'
+import type { Theme } from '@/store/settings'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -9,12 +10,30 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { language, setLanguage } = useSettingsStore()
+  const { language, theme, setLanguage, setTheme } = useSettingsStore()
 
   if (!isOpen) return null
 
   const handleLanguageChange = (newLanguage: typeof language) => {
     setLanguage(newLanguage)
+  }
+
+  const handleThemeChange = (newTheme: Theme) => {
+    setTheme(newTheme)
+  }
+
+  const themeEmojis: Record<Theme, string> = {
+    light: '☀️',
+    dark: '🌙',
+    ocean: '🌊',
+    forest: '🌲',
+  }
+
+  const themeColors: Record<Theme, string> = {
+    light: 'from-yellow-300 to-orange-400',
+    dark: 'from-gray-700 to-gray-900',
+    ocean: 'from-sky-400 to-cyan-500',
+    forest: 'from-emerald-500 to-teal-600',
   }
 
   return (
@@ -30,7 +49,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Language Section */}
           <div>
             <label className="block text-sm font-medium mb-3">{t(language, 'settings.language')}</label>
             <div className="flex gap-3">
@@ -54,6 +74,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               >
                 🇬🇧 {t(language, 'settings.english')}
               </button>
+            </div>
+          </div>
+
+          {/* Theme Section */}
+          <div className="border-t pt-6">
+            <label className="block text-sm font-medium mb-3">{t(language, 'settings.theme')}</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['light', 'dark', 'ocean', 'forest'] as const).map((themeKey) => (
+                <button
+                  key={themeKey}
+                  onClick={() => handleThemeChange(themeKey)}
+                  className={`px-3 py-2 rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm ${
+                    theme === themeKey
+                      ? `bg-gradient-to-r ${themeColors[themeKey]} text-white shadow-lg scale-105`
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {themeEmojis[themeKey]} {t(language, `settings.${themeKey}`)}
+                </button>
+              ))}
             </div>
           </div>
         </div>

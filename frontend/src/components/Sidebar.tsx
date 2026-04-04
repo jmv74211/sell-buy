@@ -9,13 +9,14 @@ import { estimationService } from '@/services/estimations'
 import apiClient from '@/services/api'
 import { SettingsModal } from './SettingsModal'
 import { t } from '@/utils/translations'
+import { getThemeButtonClasses, getThemeSidebarGradient } from '@/utils/themeHelpers'
 import clsx from 'clsx'
 
 export function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { clearAuth } = useAuthStore()
-  const { language, initializeSettings } = useSettingsStore()
+  const { language, theme, initializeSettings } = useSettingsStore()
   const [isOpen, setIsOpen] = React.useState(false)
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false)
 
@@ -201,7 +202,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <nav
         className={clsx(
-          'fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white p-6 transform transition-transform duration-300 lg:translate-x-0 z-40',
+          `fixed left-0 top-0 h-screen w-64 bg-gradient-to-b ${getThemeSidebarGradient(theme)} text-white p-6 transform transition-transform duration-300 lg:translate-x-0 z-40`,
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -231,14 +232,14 @@ export function Sidebar() {
 
         <button
           onClick={() => setSettingsModalOpen(true)}
-          className="absolute bottom-56 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
+          className={`absolute bottom-56 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium ${getThemeButtonClasses(theme, 'primary').settings}`}
         >
           <Settings size={20} />
           <span className="hidden lg:inline">{t(language, 'sidebar.settings')}</span>
         </button>
 
         <label
-          className={`absolute bottom-44 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 active:bg-teal-700 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto cursor-pointer font-medium ${isImporting ? 'opacity-60 pointer-events-none' : ''}`}
+          className={`absolute bottom-44 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto cursor-pointer font-medium ${isImporting ? 'opacity-60 pointer-events-none' : ''} ${getThemeButtonClasses(theme, 'primary').import}`}
         >
           <input
             ref={importInputRef}
@@ -254,7 +255,7 @@ export function Sidebar() {
 
         <button
           onClick={handleExportData}
-          className="absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
+          className={`absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium ${getThemeButtonClasses(theme, 'primary').export}`}
         >
           <Download size={20} />
           <span className="hidden lg:inline">{t(language, 'sidebar.exportData')}</span>
@@ -262,7 +263,7 @@ export function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="absolute bottom-6 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
+          className={`absolute bottom-6 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium ${getThemeButtonClasses(theme, 'primary').logout}`}
         >
           <LogOut size={20} />
           <span className="hidden lg:inline">{t(language, 'sidebar.logout')}</span>

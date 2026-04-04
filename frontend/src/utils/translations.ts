@@ -7,6 +7,11 @@ export const translations = {
       language: 'Idioma',
       spanish: 'Español',
       english: 'English',
+      theme: 'Tema',
+      light: 'Claro',
+      dark: 'Oscuro',
+      ocean: 'Océano',
+      forest: 'Bosque',
     },
     sidebar: {
       dashboard: 'Dashboard',
@@ -142,6 +147,11 @@ export const translations = {
       language: 'Language',
       spanish: 'Español',
       english: 'English',
+      theme: 'Theme',
+      light: 'Light',
+      dark: 'Dark',
+      ocean: 'Ocean',
+      forest: 'Forest',
     },
     sidebar: {
       dashboard: 'Dashboard',
