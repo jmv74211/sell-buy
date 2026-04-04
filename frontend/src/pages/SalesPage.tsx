@@ -5,10 +5,13 @@ import { Plus, Edit2, Trash2, ChevronUp, ChevronDown, CheckCircle, XCircle } fro
 import { saleService } from '@/services/sales'
 import { purchaseService } from '@/services/purchases'
 import { estimationService } from '@/services/estimations'
+import { useSettingsStore } from '@/store/settings'
+import { t } from '@/utils/translations'
 import type { Sale, Purchase, Estimation } from '@/types/api'
 import { formatDate } from '@/utils/date'
 
 export function SalesPage() {
+  const language = useSettingsStore((state) => state.language)
   const [sales, setSales] = React.useState<Sale[]>([])
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
@@ -141,12 +144,12 @@ export function SalesPage() {
         amount: '',
       })
       setPurchaseSearch('')
-      showToast('success', editingId ? 'Venta actualizada correctamente' : 'Venta creada correctamente')
+      showToast('success', editingId ? t(language, 'sales.messages.updated') : t(language, 'sales.messages.created'))
       setEditingId(null)
       // Notify dashboard to refresh
       localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
-      showToast('error', 'Error al guardar la venta')
+      showToast('error', t(language, 'sales.messages.errorSaving'))
       console.error('Error saving sale:', error)
     }
   }
@@ -161,9 +164,9 @@ export function SalesPage() {
       await saleService.delete(deleteId)
       setDeleteId(null)
       await loadData()
-      showToast('success', 'Venta eliminada correctamente')
+      showToast('success', t(language, 'sales.messages.deleted'))
     } catch (error) {
-      showToast('error', 'Error al eliminar la venta')
+      showToast('error', t(language, 'sales.messages.errorDeleting'))
       console.error('Error deleting sale:', error)
       setDeleteId(null)
     }
@@ -196,8 +199,8 @@ export function SalesPage() {
       <main className="flex-1 overflow-y-auto lg:ml-64 p-8 pt-20 lg:pt-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Ventas</h1>
-            <p className="text-gray-600">Registro de tus ventas</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t(language, 'sales.title')}</h1>
+            <p className="text-gray-600">{t(language, 'sales.subtitle')}</p>
           </div>
           <button
             onClick={() => {
@@ -213,12 +216,12 @@ export function SalesPage() {
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             <Plus size={20} />
-            Nueva Venta
+            {t(language, 'sales.new')}
           </button>
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Cargando...</p>
+          <p className="text-gray-600">{t(language, 'sales.loading')}</p>
         ) : (
           <>
             <div className="mb-4 flex items-center gap-4">
@@ -226,7 +229,7 @@ export function SalesPage() {
                 type="text"
                 value={tableSearchText}
                 onChange={(e) => setTableSearchText(e.target.value)}
-                placeholder="Buscar por nombre o ID de artículo..."
+                placeholder={t(language, 'sales.search')}
                 className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <span className="text-sm text-gray-600 whitespace-nowrap">Resultados: <span className="font-semibold text-gray-900">{sortedSales.length}</span></span>
@@ -307,7 +310,7 @@ export function SalesPage() {
                     }}
                     onFocus={() => setShowPurchaseDropdown(true)}
                     onBlur={() => setTimeout(() => setShowPurchaseDropdown(false), 150)}
-                    placeholder="Escribe para buscar por nombre o ID..."
+                    placeholder={t(language, 'sales.search')}
                     className="w-full border rounded-lg px-3 py-2"
                     required={!formData.purchase_id}
                     autoComplete="off"

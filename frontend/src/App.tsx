@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { useSettingsStore } from '@/store/settings'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PurchasesPage } from '@/pages/PurchasesPage'
@@ -10,10 +11,12 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 function App() {
   const { initializeAuth, isLoading } = useAuthStore()
+  const { initializeSettings } = useSettingsStore()
 
   React.useEffect(() => {
     initializeAuth()
-  }, [initializeAuth])
+    initializeSettings()
+  }, [initializeAuth, initializeSettings])
 
   if (isLoading) {
     return (

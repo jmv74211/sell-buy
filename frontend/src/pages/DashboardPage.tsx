@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { Package, TrendingUp, Activity, Wallet, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
+import { useSettingsStore } from '@/store/settings'
+import { t } from '@/utils/translations'
 import { analyticsService } from '@/services/analytics'
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
@@ -20,6 +22,7 @@ import {
 } from 'recharts'
 
 export function DashboardPage() {
+  const language = useSettingsStore((state) => state.language)
   const location = useLocation()
   const [stats, setStats] = React.useState<SummaryStats | null>(null)
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
@@ -58,7 +61,7 @@ export function DashboardPage() {
       <div className="bg-white border border-gray-200 rounded shadow px-3 py-2 text-sm">
         <p className="text-gray-600 mb-1">{label}</p>
         <p className={`font-semibold ${val >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          Balance del día: {val >= 0 ? '+' : ''}{val.toFixed(2)} €
+          {t(language, 'dashboard.dayBalance')}: {val >= 0 ? '+' : ''}{val.toFixed(2)} €
         </p>
       </div>
     )
@@ -218,44 +221,44 @@ export function DashboardPage() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto lg:ml-64 p-8 pt-20 lg:pt-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Bienvenido a tu plataforma de gestión</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t(language, 'dashboard.title')}</h1>
+          <p className="text-gray-600">{t(language, 'dashboard.subtitle')}</p>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-gray-600">Cargando datos...</p>
+            <p className="text-gray-600">{t(language, 'dashboard.loading')}</p>
           </div>
         ) : stats ? (
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <StatCard
-                title="Saldo Total"
+                title={t(language, 'dashboard.totalBalance')}
                 value={`${customStats.totalBalance.toFixed(2)}€`}
                 icon={<Activity size={24} />}
                 color={customStats.totalBalance >= 0 ? 'green' : 'red'}
               />
               <StatCard
-                title="Total Gastado"
+                title={t(language, 'dashboard.totalSpent')}
                 value={`${customStats.totalSpent.toFixed(2)}€`}
                 icon={<TrendingDown size={24} />}
                 color="red"
               />
               <StatCard
-                title="Saldo Recuperado Estimado"
+                title={t(language, 'dashboard.recoveredEstimated')}
                 value={`${customStats.recoveredEstimated.toFixed(2)}€`}
                 icon={<Wallet size={24} />}
                 color="purple"
               />
               <StatCard
-                title="Total Esperado Ganar"
+                title={t(language, 'dashboard.expectedProfit')}
                 value={`${customStats.totalExpectedProfit.toFixed(2)}€`}
                 icon={<Package size={24} />}
                 color="blue"
               />
               <StatCard
-                title="Total Ganado"
+                title={t(language, 'dashboard.totalEarned')}
                 value={`${customStats.totalEarned.toFixed(2)}€`}
                 icon={<TrendingUp size={24} />}
                 color={customStats.totalEarned >= 0 ? 'green' : 'red'}
@@ -272,14 +275,14 @@ export function DashboardPage() {
               const sumBuy = dayPurchases.reduce((s, p) => s + p.amount, 0)
               const balance = sumEst - sumBuy
 
-              const rangeLabels = { week: 'Última semana', month: 'Último mes', all: 'Todo histórico' }
+              const rangeLabels = { week: t(language, 'dashboard.lastWeek'), month: t(language, 'dashboard.lastMonth'), all: t(language, 'dashboard.allHistory') }
 
               return (
                 <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                   {/* Header con mismo grid que el contenido */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div className="flex items-center gap-4">
-                      <h2 className="text-lg font-bold text-gray-900">Balance por fecha</h2>
+                      <h2 className="text-lg font-bold text-gray-900">{t(language, 'dashboard.balanceByDate')}</h2>
                       <input
                         type="date"
                         value={selectedDate}
@@ -302,17 +305,17 @@ export function DashboardPage() {
                     <div>
                       {dayPurchases.length === 0 ? (
                         <p className="text-gray-500 text-center py-8">
-                          {selectedDate ? 'No hay artículos para esta fecha.' : 'Selecciona una fecha.'}
+                          {selectedDate ? t(language, 'dashboard.noArticlesForDate') : t(language, 'dashboard.selectDate')}
                         </p>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="bg-gray-50 border-b-2 border-gray-200">
-                                <th className="px-4 py-2 text-left font-semibold text-gray-700">Artículo</th>
-                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Compra</th>
-                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Est. venta</th>
-                                <th className="px-4 py-2 text-right font-semibold text-gray-700">Balance</th>
+                                <th className="px-4 py-2 text-left font-semibold text-gray-700">{t(language, 'dashboard.tableHeaders.article')}</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">{t(language, 'dashboard.tableHeaders.purchase')}</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">{t(language, 'dashboard.tableHeaders.estSale')}</th>
+                                <th className="px-4 py-2 text-right font-semibold text-gray-700">{t(language, 'dashboard.tableHeaders.balance')}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -338,7 +341,7 @@ export function DashboardPage() {
                             </tbody>
                             <tfoot>
                               <tr className="border-t-2 border-gray-300 bg-gray-50">
-                                <td className="px-4 py-2 font-semibold text-gray-700">Total ({dayPurchases.length})</td>
+                                <td className="px-4 py-2 font-semibold text-gray-700">{t(language, 'dashboard.tableHeaders.total')} ({dayPurchases.length})</td>
                                 <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumBuy.toFixed(2)} €</td>
                                 <td className="px-4 py-2 text-right font-semibold text-gray-700">{sumEst > 0 ? `${sumEst.toFixed(2)} €` : '-'}</td>
                                 <td className={`px-4 py-2 text-right font-bold ${
@@ -356,7 +359,7 @@ export function DashboardPage() {
                     {/* Evolution Chart */}
                     <div>
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-700">Evolución del balance</h3>
+                        <h3 className="text-sm font-semibold text-gray-700">{t(language, 'dashboard.balanceEvolution')}</h3>
                         <select
                           value={chartRange}
                           onChange={e => setChartRange(e.target.value as 'week' | 'month' | 'all')}
@@ -368,7 +371,7 @@ export function DashboardPage() {
                         </select>
                       </div>
                       {chartData.length === 0 ? (
-                        <p className="text-gray-400 text-center text-sm py-12">Sin datos para este período.</p>
+                        <p className="text-gray-400 text-center text-sm py-12">{t(language, 'dashboard.noDataForPeriod')}</p>
                       ) : (() => {
                         const rangeBalance = chartData.reduce((s, d) => s + d.balance, 0)
                         const lineColor = rangeBalance >= 0 ? '#16a34a' : '#dc2626'
@@ -420,20 +423,20 @@ export function DashboardPage() {
 
             {/* Articles Table */}
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold mb-4">Artículos</h2>
+              <h2 className="text-lg font-bold mb-4">{t(language, 'dashboard.articles')}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-100 border-b-2 border-gray-300">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('id')}>ID Artículo <TableSortIcon col="id" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('name')}>Nombre Artículo <TableSortIcon col="name" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('amount')}>Precio Compra <TableSortIcon col="amount" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estSalePrice')}>Estimación Venta <TableSortIcon col="estSalePrice" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estProfit')}>Ganancia Estimada <TableSortIcon col="estProfit" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleAmount')}>Precio Venta <TableSortIcon col="saleAmount" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('gainNeto')}>Ganancia Neta <TableSortIcon col="gainNeto" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('purchaseDate')}>Fecha Compra <TableSortIcon col="purchaseDate" /></th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleDate')}>Fecha Venta <TableSortIcon col="saleDate" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('id')}>{t(language, 'dashboard.tableHeaders.articleId')} <TableSortIcon col="id" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('name')}>{t(language, 'dashboard.tableHeaders.articleName')} <TableSortIcon col="name" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('amount')}>{t(language, 'dashboard.tableHeaders.purchasePrice')} <TableSortIcon col="amount" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estSalePrice')}>{t(language, 'dashboard.tableHeaders.estimationSale')} <TableSortIcon col="estSalePrice" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('estProfit')}>{t(language, 'dashboard.tableHeaders.estimatedProfit')} <TableSortIcon col="estProfit" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleAmount')}>{t(language, 'dashboard.tableHeaders.salePrice')} <TableSortIcon col="saleAmount" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('gainNeto')}>{t(language, 'dashboard.tableHeaders.netProfit')} <TableSortIcon col="gainNeto" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('purchaseDate')}>{t(language, 'dashboard.tableHeaders.purchaseDate')} <TableSortIcon col="purchaseDate" /></th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer select-none whitespace-nowrap" onClick={() => handleTableSort('saleDate')}>{t(language, 'dashboard.tableHeaders.saleDate')} <TableSortIcon col="saleDate" /></th>
                     </tr>
                   </thead>
                   <tbody>

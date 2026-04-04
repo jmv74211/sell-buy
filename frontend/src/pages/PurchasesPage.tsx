@@ -3,10 +3,13 @@ import { Sidebar } from '@/components/Sidebar'
 import { Modal } from '@/components/Modal'
 import { Plus, Edit2, Trash2, ChevronUp, ChevronDown, CheckCircle, XCircle } from 'lucide-react'
 import { purchaseService } from '@/services/purchases'
+import { useSettingsStore } from '@/store/settings'
+import { t } from '@/utils/translations'
 import type { Purchase } from '@/types/api'
 import { formatDate } from '@/utils/date'
 
 export function PurchasesPage() {
+  const language = useSettingsStore((state) => state.language)
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [loading, setLoading] = React.useState(true)
   const [sortKey, setSortKey] = React.useState<string>('id')
@@ -69,12 +72,12 @@ export function PurchasesPage() {
         amount: '',
         platform_id: null,
       })
-      showToast('success', editingId ? 'Compra actualizada correctamente' : 'Compra creada correctamente')
+      showToast('success', editingId ? t(language, 'purchases.messages.updated') : t(language, 'purchases.messages.created'))
       setEditingId(null)
       // Notify dashboard to refresh
       localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
-      showToast('error', 'Error al guardar la compra')
+      showToast('error', t(language, 'purchases.messages.errorSaving'))
       console.error('Error saving purchase:', error)
     }
   }
@@ -89,9 +92,9 @@ export function PurchasesPage() {
       await purchaseService.delete(deleteId)
       setDeleteId(null)
       await loadData()
-      showToast('success', 'Compra eliminada correctamente')
+      showToast('success', t(language, 'purchases.messages.deleted'))
     } catch (error) {
-      showToast('error', 'Error al eliminar la compra')
+      showToast('error', t(language, 'purchases.messages.errorDeleting'))
       console.error('Error deleting purchase:', error)
       setDeleteId(null)
     }
@@ -146,8 +149,8 @@ export function PurchasesPage() {
       <main className="flex-1 overflow-y-auto lg:ml-64 p-8 pt-20 lg:pt-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Compras</h1>
-            <p className="text-gray-600">Registro de tus compras</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t(language, 'purchases.title')}</h1>
+            <p className="text-gray-600">{t(language, 'purchases.subtitle')}</p>
           </div>
           <button
             onClick={() => {
@@ -163,12 +166,12 @@ export function PurchasesPage() {
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             <Plus size={20} />
-            Nueva Compra
+            {t(language, 'purchases.new')}
           </button>
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Cargando...</p>
+          <p className="text-gray-600">{t(language, 'purchases.loading')}</p>
         ) : (
           <>
             <div className="mb-4 flex items-center gap-4">
@@ -176,20 +179,20 @@ export function PurchasesPage() {
                 type="text"
                 value={tableSearchText}
                 onChange={(e) => setTableSearchText(e.target.value)}
-                placeholder="Buscar por nombre o ID de artículo..."
+                placeholder={t(language, 'purchases.search')}
                 className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-600 whitespace-nowrap">Resultados: <span className="font-semibold text-gray-900">{sortedPurchases.length}</span></span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">{t(language, 'common.results')}: <span className="font-semibold text-gray-900">{sortedPurchases.length}</span></span>
             </div>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('date')}>Fecha <SortIcon col="date" /></th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('amount')}>Precio <SortIcon col="amount" /></th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>{t(language, 'purchases.tableHeaders.articleId')} <SortIcon col="id" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>{t(language, 'purchases.tableHeaders.article')} <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('date')}>{t(language, 'purchases.tableHeaders.date')} <SortIcon col="date" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('amount')}>{t(language, 'purchases.tableHeaders.price')} <SortIcon col="amount" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">{t(language, 'purchases.tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +224,7 @@ export function PurchasesPage() {
                 ) : (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center text-gray-600">
-                      No hay compras registradas
+                      {t(language, 'common.unknown')}
                     </td>
                   </tr>
                 )}

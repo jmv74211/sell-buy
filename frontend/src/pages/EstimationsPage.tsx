@@ -5,10 +5,13 @@ import { Plus, Edit2, Trash2, ChevronUp, ChevronDown, CheckCircle, XCircle } fro
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
+import { useSettingsStore } from '@/store/settings'
+import { t } from '@/utils/translations'
 import type { Estimation, Purchase, Sale } from '@/types/api'
 import { formatDate } from '@/utils/date'
 
 export function EstimationsPage() {
+  const language = useSettingsStore((state) => state.language)
   const [estimations, setEstimations] = React.useState<Estimation[]>([])
   const [purchases, setPurchases] = React.useState<Purchase[]>([])
   const [sales, setSales] = React.useState<Sale[]>([])
@@ -53,18 +56,18 @@ export function EstimationsPage() {
     const purchase = purchases.find((p) => p.id === purchaseId)
     return purchase
       ? `${purchase.article_name} - ${purchase.amount.toFixed(2)}€`
-      : 'Desconocido'
+      : t(language, 'estimations.unknown')
   }
 
   const getArticleName = (purchaseId: number) => {
     const purchase = purchases.find((p) => p.id === purchaseId)
-    return purchase ? purchase.article_name : 'Desconocido'
+    return purchase ? purchase.article_name : t(language, 'estimations.unknown')
   }
 
   const getSaleName = (saleId: number | null) => {
-    if (!saleId) return 'No realizada'
+    if (!saleId) return t(language, 'estimations.notRealized')
     const sale = sales.find((s) => s.id === saleId)
-      return sale ? `${sale.amount.toFixed(2)}€` : 'Desconocido'
+      return sale ? `${sale.amount.toFixed(2)}€` : t(language, 'estimations.unknown')
   }
 
   const getPurchaseAmount = (purchaseId: number) => {
@@ -124,12 +127,12 @@ export function EstimationsPage() {
         purchase_id: '',
         estimated_sale_price: '',
       })
-      showToast('success', editingId ? 'Estimación actualizada correctamente' : 'Estimación creada correctamente')
+      showToast('success', editingId ? t(language, 'estimations.messages.updated') : t(language, 'estimations.messages.created'))
       setEditingId(null)
       // Notify dashboard to refresh
       localStorage.setItem('refreshDashboard', Date.now().toString())
     } catch (error) {
-      showToast('error', 'Error al guardar la estimación')
+      showToast('error', t(language, 'estimations.messages.errorSaving'))
       console.error('Error saving estimation:', error)
     }
   }
@@ -144,10 +147,10 @@ export function EstimationsPage() {
       await estimationService.delete(deleteId)
       setDeleteId(null)
       await loadData()
-      showToast('success', 'Estimación eliminada correctamente')
+      showToast('success', t(language, 'estimations.messages.deleted'))
     } catch (error: any) {
-      const detail = error.response?.data?.detail || error.message || 'Error desconocido'
-      showToast('error', `Error al eliminar: ${detail}`)
+      const detail = error.response?.data?.detail || error.message || t(language, 'estimations.unknownError')
+      showToast('error', `${t(language, 'estimations.messages.errorDeleting')}${detail}`)
       console.error('Error deleting estimation:', error)
       setDeleteId(null)
     }
@@ -204,8 +207,8 @@ export function EstimationsPage() {
       <main className="flex-1 overflow-y-auto lg:ml-64 p-8 pt-20 lg:pt-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Estimaciones</h1>
-            <p className="text-gray-600">Gestiona tus estimaciones de ganancia</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t(language, 'estimations.title')}</h1>
+            <p className="text-gray-600">{t(language, 'estimations.subtitle')}</p>
           </div>
           <button
             onClick={() => {
@@ -219,12 +222,12 @@ export function EstimationsPage() {
             className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             <Plus size={20} />
-            Nueva Estimación
+            {t(language, 'estimations.new')}
           </button>
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Cargando...</p>
+          <p className="text-gray-600">{t(language, 'estimations.loading')}</p>
         ) : (
           <>
             <div className="mb-4 flex items-center gap-4">
@@ -232,27 +235,27 @@ export function EstimationsPage() {
                 type="text"
                 value={tableSearchText}
                 onChange={(e) => setTableSearchText(e.target.value)}
-                placeholder="Buscar por nombre o ID de artículo..."
+                placeholder={t(language, 'estimations.search')}
                 className="w-full md:w-80 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
-              <span className="text-sm text-gray-600 whitespace-nowrap">Resultados: <span className="font-semibold text-gray-900">{sortedEstimations.length}</span></span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">{t(language, 'common.results')}: <span className="font-semibold text-gray-900">{sortedEstimations.length}</span></span>
             </div>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>ID Artículo <SortIcon col="id" /></th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>Artículo <SortIcon col="name" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('id')}>{t(language, 'estimations.tableHeaders.articleId')} <SortIcon col="id" /></th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('name')}>{t(language, 'estimations.tableHeaders.article')} <SortIcon col="name" /></th>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('estSalePrice')}>
-                    Precio Est. Venta <SortIcon col="estSalePrice" />
+                    {t(language, 'estimations.tableHeaders.estSalePrice')} <SortIcon col="estSalePrice" />
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('estimated')}>
-                    Ganancia Estimada <SortIcon col="estimated" />
+                    {t(language, 'estimations.tableHeaders.estProfit')} <SortIcon col="estimated" />
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold cursor-pointer select-none" onClick={() => handleSort('actual')}>
-                    Ganancia Real <SortIcon col="actual" />
+                    {t(language, 'estimations.tableHeaders.actualProfit')} <SortIcon col="actual" />
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Acciones</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">{t(language, 'estimations.tableHeaders.actions')}</th>
                 </tr>
               </thead>
               <tbody>

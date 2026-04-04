@@ -1,23 +1,32 @@
 import React from 'react'
-import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload, CheckCircle, XCircle } from 'lucide-react'
+import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload, CheckCircle, XCircle, Settings } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { useSettingsStore } from '@/store/settings'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
 import { estimationService } from '@/services/estimations'
 import apiClient from '@/services/api'
+import { SettingsModal } from './SettingsModal'
+import { t } from '@/utils/translations'
 import clsx from 'clsx'
 
 export function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { clearAuth } = useAuthStore()
+  const { language, initializeSettings } = useSettingsStore()
   const [isOpen, setIsOpen] = React.useState(false)
+  const [settingsModalOpen, setSettingsModalOpen] = React.useState(false)
 
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
   }
+
+  React.useEffect(() => {
+    initializeSettings()
+  }, [initializeSettings])
 
   const [isImporting, setIsImporting] = React.useState(false)
   const importInputRef = React.useRef<HTMLInputElement>(null)
@@ -173,10 +182,10 @@ export function Sidebar() {
   }
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard' },
-    { icon: TrendingUp, label: 'Compras', href: '/purchases' },
-    { icon: TrendingUp, label: 'Ventas', href: '/sales' },
-    { icon: Target, label: 'Estimaciones', href: '/estimations' },
+    { icon: Home, label: t(language, 'sidebar.dashboard'), href: '/dashboard' },
+    { icon: TrendingUp, label: t(language, 'sidebar.purchases'), href: '/purchases' },
+    { icon: TrendingUp, label: t(language, 'sidebar.sales'), href: '/sales' },
+    { icon: Target, label: t(language, 'sidebar.estimations'), href: '/estimations' },
   ]
 
   return (
@@ -220,8 +229,16 @@ export function Sidebar() {
           ))}
         </ul>
 
+        <button
+          onClick={() => setSettingsModalOpen(true)}
+          className="absolute bottom-56 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
+        >
+          <Settings size={20} />
+          <span className="hidden lg:inline">{t(language, 'sidebar.settings')}</span>
+        </button>
+
         <label
-          className={`absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-400 transition-colors w-12 justify-center lg:w-auto cursor-pointer ${isImporting ? 'opacity-60 pointer-events-none' : ''}`}
+          className={`absolute bottom-44 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 active:bg-teal-700 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto cursor-pointer font-medium ${isImporting ? 'opacity-60 pointer-events-none' : ''}`}
         >
           <input
             ref={importInputRef}
@@ -232,23 +249,23 @@ export function Sidebar() {
             disabled={isImporting}
           />
           <Upload size={20} />
-          <span className="hidden lg:inline">{isImporting ? 'Importando...' : 'Importar datos'}</span>
+          <span className="hidden lg:inline">{isImporting ? t(language, 'sidebar.importing') : t(language, 'sidebar.importData')}</span>
         </label>
 
         <button
           onClick={handleExportData}
-          className="absolute bottom-20 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-400 hover:bg-blue-300 transition-colors w-12 justify-center lg:w-auto"
+          className="absolute bottom-32 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
         >
           <Download size={20} />
-          <span className="hidden lg:inline">Exportar datos</span>
+          <span className="hidden lg:inline">{t(language, 'sidebar.exportData')}</span>
         </button>
 
         <button
           onClick={handleLogout}
-          className="absolute bottom-6 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition-colors w-12 justify-center lg:w-auto"
+          className="absolute bottom-6 left-6 right-6 flex items-center gap-3 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all shadow-md hover:shadow-lg w-12 justify-center lg:w-auto font-medium"
         >
           <LogOut size={20} />
-          <span className="hidden lg:inline">Salir</span>
+          <span className="hidden lg:inline">{t(language, 'sidebar.logout')}</span>
         </button>
       </nav>
 
@@ -299,6 +316,9 @@ export function Sidebar() {
           <span className="text-sm">{toast.msg}</span>
         </div>
       )}
+
+      {/* Settings modal */}
+      <SettingsModal isOpen={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
     </>
   )
 }
