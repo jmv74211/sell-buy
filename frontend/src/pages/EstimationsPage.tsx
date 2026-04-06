@@ -23,6 +23,8 @@ export function EstimationsPage() {
   const [deleteId, setDeleteId] = React.useState<number | null>(null)
   const [toast, setToast] = React.useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [tableSearchText, setTableSearchText] = React.useState('')
+  const [purchaseSearchText, setPurchaseSearchText] = React.useState('')
+  const [showPurchaseDropdown, setShowPurchaseDropdown] = React.useState(false)
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -92,7 +94,18 @@ export function EstimationsPage() {
         return !hasEstimation || purchase.id === currentEstimation?.purchase_id
       }
       return !hasEstimation
-    })
+    }).sort((a, b) => b.id - a.id) // Sort by ID descending
+  }
+
+  const getFilteredPurchases = () => {
+    const available = getAvailablePurchases()
+    if (!purchaseSearchText.trim()) return available
+    const search = purchaseSearchText.toLowerCase()
+    return available.filter((purchase) =>
+      purchase.id.toString().includes(search) ||
+      purchase.article_name.toLowerCase().includes(search) ||
+      purchase.amount.toString().includes(search)
+    )
   }
 
   const calculateActualProfit = (purchaseId: number, saleId: number | null) => {
@@ -342,22 +355,46 @@ export function EstimationsPage() {
                   {getArticleName(parseInt(formData.purchase_id))}
                 </div>
               ) : (
-                // Show as select when creating
-                <select
-                  value={formData.purchase_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, purchase_id: e.target.value })
-                  }
-                  className="w-full border rounded-lg px-3 py-2"
-                  required
-                >
-                  <option value="">Selecciona una compra</option>
-                  {getAvailablePurchases().map((purchase) => (
-                    <option key={purchase.id} value={purchase.id}>
-                      ({purchase.id}) - {purchase.article_name}
-                    </option>
-                  ))}
-                </select>
+                // Show as searchable dropdown when creating
+                <div className="relative">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Busca por ID, nombre o precio..."
+                      value={purchaseSearchText}
+                      onChange={(e) => setPurchaseSearchText(e.target.value)}
+                      onFocus={() => setShowPurchaseDropdown(true)}
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  {showPurchaseDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                      {getFilteredPurchases().length > 0 ? (
+                        getFilteredPurchases().map((purchase) => (
+                          <div
+                            key={purchase.id}
+                            onClick={() => {
+                              setFormData({ ...formData, purchase_id: purchase.id.toString() })
+                              setShowPurchaseDropdown(false)
+                              setPurchaseSearchText('')
+                            }}
+                            className="px-3 py-2 hover:bg-purple-50 cursor-pointer border-b last:border-b-0"
+                          >
+                            <div className="font-medium">({purchase.id}) - {purchase.article_name}</div>
+                            <div className="text-sm text-gray-500">{formatDate(purchase.purchase_date)} - {purchase.amount.toFixed(2)}€</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 text-center">No hay compras disponibles</div>
+                      )}
+                    </div>
+                  )}
+                  {formData.purchase_id && (
+                    <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded text-sm">
+                      <strong>Seleccionada:</strong> {getArticleName(parseInt(formData.purchase_id))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <div>
