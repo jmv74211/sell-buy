@@ -22,26 +22,11 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# Platform Schemas
-class PlatformBase(BaseModel):
-    name: str
-    url: Optional[str] = None
-
-class PlatformCreate(PlatformBase):
-    pass
-
-class PlatformResponse(PlatformBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
 # Purchase Schemas
 class PurchaseBase(BaseModel):
     article_name: str
     purchase_date: date
     amount: Decimal
-    platform_id: Optional[int] = None
 
 class PurchaseCreate(PurchaseBase):
     pass
@@ -52,7 +37,6 @@ class PurchaseResponse(BaseModel):
     article_name: str
     purchase_date: datetime
     amount: float
-    platform_id: Optional[int] = None
     created_at: datetime
 
     class Config:

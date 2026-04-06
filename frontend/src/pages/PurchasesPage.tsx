@@ -28,7 +28,6 @@ export function PurchasesPage() {
     article_name: '',
     purchase_date: new Date().toISOString().split('T')[0],
     amount: '',
-    platform_id: null as number | null,
   })
 
   React.useEffect(() => {
@@ -54,14 +53,12 @@ export function PurchasesPage() {
           article_name: formData.article_name,
           purchase_date: formData.purchase_date,
           amount: parseFloat(formData.amount),
-          platform_id: formData.platform_id,
         } as any)
       } else {
         await purchaseService.create({
           article_name: formData.article_name,
           purchase_date: formData.purchase_date,
           amount: parseFloat(formData.amount),
-          platform_id: formData.platform_id,
         } as any)
       }
       await loadData()
@@ -70,7 +67,6 @@ export function PurchasesPage() {
         article_name: '',
         purchase_date: new Date().toISOString().split('T')[0],
         amount: '',
-        platform_id: null,
       })
       showToast('success', editingId ? t(language, 'purchases.messages.updated') : t(language, 'purchases.messages.created'))
       setEditingId(null)
@@ -106,7 +102,6 @@ export function PurchasesPage() {
       article_name: purchase.article_name,
       purchase_date: purchase.purchase_date.split('T')[0],
       amount: purchase.amount.toString(),
-      platform_id: purchase.platform_id,
     })
     setShowModal(true)
   }
@@ -159,7 +154,6 @@ export function PurchasesPage() {
                 article_name: '',
                 purchase_date: new Date().toISOString().split('T')[0],
                 amount: '',
-                platform_id: null,
               })
               setShowModal(true)
             }}

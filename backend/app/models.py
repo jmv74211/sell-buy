@@ -20,13 +20,6 @@ class User(Base):
     # Relationships
     purchases = relationship("Purchase", back_populates="owner")
 
-class Platform(Base):
-    __tablename__ = "platforms"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    url = Column(String(255), nullable=True)
-
 class Purchase(Base):
     __tablename__ = "purchases"
 
@@ -35,12 +28,10 @@ class Purchase(Base):
     article_name = Column(String(255), nullable=False)
     purchase_date = Column(DateTime, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    platform_id = Column(Integer, ForeignKey("platforms.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     # Relationships
     owner = relationship("User", back_populates="purchases")
-    platform = relationship("Platform")
     sales = relationship("Sale", back_populates="purchase", cascade="all, delete-orphan")
     estimation = relationship("Estimation", back_populates="purchase", uselist=False, cascade="all, delete-orphan")
 

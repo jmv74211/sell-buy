@@ -38,7 +38,6 @@ app.add_middleware(
 # Include routes
 app.include_router(routes.auth.router)
 app.include_router(routes.users.router)
-app.include_router(routes.platforms.router)
 app.include_router(routes.purchases.router)
 app.include_router(routes.sales.router)
 app.include_router(routes.estimations.router)

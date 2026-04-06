@@ -9,11 +9,6 @@ export interface User {
   created_at: string
 }
 
-export interface Platform {
-  id: number
-  name: string
-  url: string | null
-}
 
 export interface Purchase {
   id: number
@@ -21,7 +16,6 @@ export interface Purchase {
   article_name: string
   purchase_date: string
   amount: number
-  platform_id: number | null
   created_at: string
 }
 
