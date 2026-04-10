@@ -45,11 +45,14 @@ def import_csv(
     current_user: models.User = Depends(security.get_current_user),
     db: Session = Depends(get_db),
 ):
+    print(f"[IMPORT] Starting import for user: {current_user.id} ({current_user.user_name})")
+
     if not file.filename or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="El archivo debe ser un CSV")
 
     content = file.file.read().decode('utf-8-sig')
     lines = content.splitlines()
+    print(f"[IMPORT] CSV lines read: {len(lines)}")
 
     # Detect where the actual header row is (skip summary rows at the top)
     # The header row contains 'ARTÍCULO' or 'ARTICULO'
@@ -61,6 +64,8 @@ def import_csv(
 
     if header_idx is None:
         raise HTTPException(status_code=400, detail="No se encontró la cabecera del CSV (columna ARTÍCULO)")
+
+    print(f"[IMPORT] Header found at index: {header_idx}")
 
     csv_body = '\n'.join(lines[header_idx:])
     sample = csv_body[:2048]
@@ -109,7 +114,6 @@ def import_csv(
                 article_name=article_name,
                 purchase_date=purchase_date,
                 amount=purchase_price,
-                platform_id=None,
             )
             db.add(purchase)
             db.flush()
@@ -137,9 +141,17 @@ def import_csv(
             estimations_created += 1
 
         except Exception as e:
-            errors.append(f"Fila {idx}: {str(e)}")
+            error_msg = f"Fila {idx}: {str(e)}"
+            errors.append(error_msg)
+            if idx <= 3:  # Log first 3 errors
+                print(f"[IMPORT] Error en fila {idx}: {str(e)}")
+                print(f"[IMPORT] Row data: {row}")
 
     db.commit()
+
+    print(f"[IMPORT] Import completed: {purchases_created} purchases, {sales_created} sales, {estimations_created} estimations, {len(errors)} errors")
+    if errors:
+        print(f"[IMPORT] First error: {errors[0]}")
 
     return {
         "purchases": purchases_created,

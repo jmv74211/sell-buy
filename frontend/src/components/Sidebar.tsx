@@ -60,8 +60,11 @@ export function Sidebar() {
     try {
       const formData = new FormData()
       formData.append('file', pendingFile)
+      // Must remove default JSON content-type to allow multipart
       const response = await apiClient.post('/import/csv', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': undefined,
+        },
       })
       const { purchases, sales, estimations, errors } = response.data
       let msg = `Importación completada: ${purchases} compras, ${sales} ventas, ${estimations} estimaciones`
@@ -70,11 +73,25 @@ export function Sidebar() {
       }
       showToast('success', msg)
       setTimeout(() => {
-        navigate(location.pathname, { replace: true })
         window.location.reload()
       }, 1500)
     } catch (error: any) {
-      const detail = error.response?.data?.detail || error.message || 'Error desconocido'
+      console.error('Import error full:', error.response || error)
+      let detail = 'Error desconocido'
+      if (error.response?.status === 422) {
+        const validationErrors = error.response?.data?.detail
+        if (Array.isArray(validationErrors)) {
+          detail = validationErrors.map((e: any) => e.msg || e.type).join(', ')
+        } else if (typeof validationErrors === 'string') {
+          detail = validationErrors
+        } else {
+          detail = 'Error de validación en la solicitud'
+        }
+      } else if (error.response?.data?.detail) {
+        detail = error.response.data.detail
+      } else if (error.message) {
+        detail = error.message
+      }
       showToast('error', `Error al importar: ${detail}`)
     } finally {
       setIsImporting(false)
