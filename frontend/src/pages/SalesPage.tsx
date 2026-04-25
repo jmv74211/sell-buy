@@ -8,7 +8,7 @@ import { estimationService } from '@/services/estimations'
 import { useSettingsStore } from '@/store/settings'
 import { t } from '@/utils/translations'
 import type { Sale, Purchase, Estimation } from '@/types/api'
-import { formatDate } from '@/utils/date'
+import { formatDate, localDateStr } from '@/utils/date'
 
 export function SalesPage() {
   const language = useSettingsStore((state) => state.language)
@@ -29,7 +29,7 @@ export function SalesPage() {
   }
   const [formData, setFormData] = React.useState({
     purchase_id: '',
-    sale_date: new Date().toISOString().split('T')[0],
+    sale_date: localDateStr(),
     amount: '',
   })
   const [purchaseSearch, setPurchaseSearch] = React.useState('')
@@ -140,7 +140,7 @@ export function SalesPage() {
       setShowModal(false)
       setFormData({
         purchase_id: '',
-        sale_date: new Date().toISOString().split('T')[0],
+        sale_date: localDateStr(),
         amount: '',
       })
       setPurchaseSearch('')
@@ -207,7 +207,7 @@ export function SalesPage() {
               setEditingId(null)
               setFormData({
                 purchase_id: '',
-                sale_date: new Date().toISOString().split('T')[0],
+                sale_date: localDateStr(),
                 amount: '',
               })
               setPurchaseSearch('')

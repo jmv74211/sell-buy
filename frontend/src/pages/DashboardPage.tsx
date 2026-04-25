@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { StatCard } from '@/components/StatCard'
 import { useSettingsStore } from '@/store/settings'
 import { t } from '@/utils/translations'
+import { localDateStr } from '@/utils/date'
 import { analyticsService } from '@/services/analytics'
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
@@ -145,11 +146,16 @@ export function DashboardPage() {
     const sortedDates = [...byDate.keys()].sort()
 
     const now = new Date()
+    const subtractDays = (n: number) => {
+      const d = new Date(now)
+      d.setDate(d.getDate() - n)
+      return localDateStr(d)
+    }
     const cutoff =
       chartRange === 'week'
-        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        ? subtractDays(7)
         : chartRange === 'month'
-        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        ? subtractDays(30)
         : '0000-00-00'
 
     // Per-day balance (same formula as the table: Σ est_sale_price - Σ purchase_amount)

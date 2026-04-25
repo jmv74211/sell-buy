@@ -6,7 +6,7 @@ import { purchaseService } from '@/services/purchases'
 import { useSettingsStore } from '@/store/settings'
 import { t } from '@/utils/translations'
 import type { Purchase } from '@/types/api'
-import { formatDate } from '@/utils/date'
+import { formatDate, localDateStr } from '@/utils/date'
 
 export function PurchasesPage() {
   const language = useSettingsStore((state) => state.language)
@@ -26,7 +26,7 @@ export function PurchasesPage() {
   }
   const [formData, setFormData] = React.useState({
     article_name: '',
-    purchase_date: new Date().toISOString().split('T')[0],
+    purchase_date: localDateStr(),
     amount: '',
   })
 
@@ -65,7 +65,7 @@ export function PurchasesPage() {
       setShowModal(false)
       setFormData({
         article_name: '',
-        purchase_date: new Date().toISOString().split('T')[0],
+        purchase_date: localDateStr(),
         amount: '',
       })
       showToast('success', editingId ? t(language, 'purchases.messages.updated') : t(language, 'purchases.messages.created'))
@@ -152,7 +152,7 @@ export function PurchasesPage() {
               setEditingId(null)
               setFormData({
                 article_name: '',
-                purchase_date: new Date().toISOString().split('T')[0],
+                purchase_date: localDateStr(),
                 amount: '',
               })
               setShowModal(true)
