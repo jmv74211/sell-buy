@@ -9,11 +9,25 @@ export interface User {
   created_at: string
 }
 
+export interface PlatformRange {
+  id: number
+  platform_name: string
+  code_range: number
+  created_at: string
+}
+
+export interface Article {
+  article_code: number
+  article_name: string
+  platform_id: number
+  created_at: string
+}
 
 export interface Purchase {
   id: number
   user_id: number
   article_name: string
+  article_code?: number | null
   purchase_date: string
   amount: number
   created_at: string

@@ -6,5 +6,6 @@ from . import sales
 from . import estimations
 from . import analytics
 from . import import_csv
+from . import inventory
 
-__all__ = ["auth", "users", "purchases", "sales", "estimations", "analytics", "import_csv"]
+__all__ = ["auth", "users", "purchases", "sales", "estimations", "analytics", "import_csv", "inventory"]

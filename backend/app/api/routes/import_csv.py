@@ -109,9 +109,29 @@ def import_csv(
             sale_date_raw = (row.get('FECHA VENTA') or '').strip()
             sale_date = _parse_date(sale_date_raw) if sale_date_raw else purchase_date
 
+            # Parse article code from COD_ART column (optional)
+            article_code = None
+            cod_art_str = (row.get('COD_ART') or '').strip()
+            if cod_art_str and cod_art_str.isdigit():
+                try:
+                    article_code = int(cod_art_str)
+                    # Try to verify the article exists (but don't fail if it doesn't)
+                    try:
+                        article = db.query(models.Article).filter(
+                            models.Article.article_code == article_code
+                        ).first()
+                        if not article:
+                            article_code = None
+                    except:
+                        # If query fails, just set to None
+                        article_code = None
+                except ValueError:
+                    article_code = None
+
             purchase = models.Purchase(
                 user_id=current_user.id,
                 article_name=article_name,
+                article_code=article_code,
                 purchase_date=purchase_date,
                 amount=purchase_price,
             )

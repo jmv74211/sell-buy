@@ -26,6 +26,7 @@ export function PurchasesPage() {
   }
   const [formData, setFormData] = React.useState({
     article_name: '',
+    article_code: '',
     purchase_date: localDateStr(),
     amount: '',
   })
@@ -48,23 +49,23 @@ export function PurchasesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const purchaseData = {
+        article_name: formData.article_name,
+        purchase_date: formData.purchase_date,
+        amount: parseFloat(formData.amount),
+        article_code: formData.article_code ? parseInt(formData.article_code) : null,
+      } as any
+
       if (editingId) {
-        await purchaseService.update(editingId, {
-          article_name: formData.article_name,
-          purchase_date: formData.purchase_date,
-          amount: parseFloat(formData.amount),
-        } as any)
+        await purchaseService.update(editingId, purchaseData)
       } else {
-        await purchaseService.create({
-          article_name: formData.article_name,
-          purchase_date: formData.purchase_date,
-          amount: parseFloat(formData.amount),
-        } as any)
+        await purchaseService.create(purchaseData)
       }
       await loadData()
       setShowModal(false)
       setFormData({
         article_name: '',
+        article_code: '',
         purchase_date: localDateStr(),
         amount: '',
       })
@@ -100,6 +101,7 @@ export function PurchasesPage() {
     setEditingId(purchase.id)
     setFormData({
       article_name: purchase.article_name,
+      article_code: purchase.article_code?.toString() || '',
       purchase_date: purchase.purchase_date.split('T')[0],
       amount: purchase.amount.toString(),
     })
@@ -152,6 +154,7 @@ export function PurchasesPage() {
               setEditingId(null)
               setFormData({
                 article_name: '',
+                article_code: '',
                 purchase_date: localDateStr(),
                 amount: '',
               })
@@ -265,6 +268,18 @@ export function PurchasesPage() {
                 }
                 className="w-full border rounded-lg px-3 py-2"
                 required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Código del Artículo</label>
+              <input
+                type="number"
+                value={formData.article_code}
+                onChange={(e) =>
+                  setFormData({ ...formData, article_code: e.target.value })
+                }
+                className="w-full border rounded-lg px-3 py-2"
+                placeholder="Ej: 5000, 7001"
               />
             </div>
             <div>

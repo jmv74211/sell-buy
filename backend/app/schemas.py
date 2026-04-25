@@ -3,6 +3,38 @@ from datetime import datetime, date
 from typing import Optional
 from decimal import Decimal
 
+# Platform Range Schemas
+class PlatformRangeBase(BaseModel):
+    platform_name: str
+    code_range: int
+
+class PlatformRangeCreate(PlatformRangeBase):
+    pass
+
+class PlatformRangeResponse(PlatformRangeBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Article Schemas
+class ArticleBase(BaseModel):
+    article_code: int
+    article_name: str
+    platform_id: int
+
+class ArticleCreate(ArticleBase):
+    pass
+
+class ArticleResponse(ArticleBase):
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # User Schemas
 class UserBase(BaseModel):
     user_name: str
@@ -27,6 +59,7 @@ class PurchaseBase(BaseModel):
     article_name: str
     purchase_date: date
     amount: Decimal
+    article_code: Optional[int] = None
 
 class PurchaseCreate(PurchaseBase):
     pass
@@ -35,6 +68,7 @@ class PurchaseResponse(BaseModel):
     id: int
     user_id: int
     article_name: str
+    article_code: Optional[int]
     purchase_date: datetime
     amount: float
     created_at: datetime
