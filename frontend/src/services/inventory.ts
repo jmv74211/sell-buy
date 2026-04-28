@@ -97,6 +97,18 @@ class InventoryService {
     if (!response.ok) throw new Error('Failed to delete article')
     return response.json()
   }
+
+  // Available inventory for sale
+  async getAvailableInventory(token: string) {
+    const response = await fetch(`${this.baseUrl}/api/inventory-view/available`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    if (!response.ok) throw new Error('Failed to fetch available inventory')
+    return response.json()
+  }
 }
 
 export const inventoryService = new InventoryService()

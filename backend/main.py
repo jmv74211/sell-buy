@@ -362,7 +362,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -376,6 +376,7 @@ app.include_router(routes.sales.router)
 app.include_router(routes.estimations.router)
 app.include_router(routes.analytics.router)
 app.include_router(routes.inventory.router)
+app.include_router(routes.inventory_view.router)
 app.include_router(routes.import_csv.router)
 
 @app.get("/health")

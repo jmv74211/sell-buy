@@ -130,3 +130,10 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None
+
+# Inventory Schemas
+class InventoryItemResponse(BaseModel):
+    article_name: str
+    article_code: Optional[int] = None
+    quantity_available: int
+    estimated_sale_price: Optional[float] = None
