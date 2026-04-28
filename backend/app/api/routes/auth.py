@@ -75,3 +75,17 @@ def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh_token(current_user: models.User = Depends(security.get_current_user)):
+    """Refresh the access token for the current user"""
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": str(current_user.id)}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": current_user
+    }

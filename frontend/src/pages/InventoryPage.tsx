@@ -20,17 +20,12 @@ interface Article {
 
 export function InventoryPage() {
   const language = useSettingsStore((state) => state.language);
-  const { token, clearAuth } = useAuthStore();
+  const { token } = useAuthStore();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
-
-  const handleRefreshSession = () => {
-    clearAuth();
-    window.location.href = '/login';
-  };
 
   useEffect(() => {
     if (!token) return;
@@ -101,22 +96,9 @@ export function InventoryPage() {
         {loading ? (
           <p className="text-gray-600">Cargando inventario...</p>
         ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center justify-between">
-            <div>
-              <p className="font-semibold">Error al cargar el inventario</p>
-              <p className="text-sm">{error}</p>
-              {error.includes('401') && (
-                <p className="text-sm mt-2">Tu sesión ha expirado. Por favor, inicia sesión nuevamente.</p>
-              )}
-            </div>
-            {error.includes('401') && (
-              <button
-                onClick={handleRefreshSession}
-                className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold transition-colors flex-shrink-0"
-              >
-                Ir a Login
-              </button>
-            )}
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <p className="font-semibold">Error al cargar el inventario</p>
+            <p className="text-sm">{error}</p>
           </div>
         ) : inventory.length === 0 ? (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
