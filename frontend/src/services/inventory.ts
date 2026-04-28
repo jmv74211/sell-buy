@@ -75,15 +75,30 @@ class InventoryService {
   }
 
   async updateArticle(code: number, article: Omit<Article, 'created_at'>, token: string) {
-    const response = await fetch(`${this.baseUrl}/api/inventory/articles/${code}`, {
+    console.log('updateArticle called with:', { code, article, tokenLength: token?.length });
+
+    const url = `${this.baseUrl}/api/inventory/articles/${code}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+
+    console.log('Request URL:', url);
+    console.log('Headers:', { 'Content-Type': headers['Content-Type'], 'Authorization': `Bearer ${token?.substring(0, 20)}...` });
+
+    const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: headers,
       body: JSON.stringify(article),
     })
-    if (!response.ok) throw new Error('Failed to update article')
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to update article' }))
+      console.error('Error response:', error);
+      throw new Error(error.detail || 'Failed to update article')
+    }
     return response.json()
   }
 

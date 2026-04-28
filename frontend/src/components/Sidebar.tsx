@@ -1,5 +1,5 @@
 import React from 'react'
-import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload, CheckCircle, XCircle, Settings, Package } from 'lucide-react'
+import { Menu, LogOut, Home, TrendingUp, Target, Download, Upload, CheckCircle, XCircle, Settings, Package, Layers } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
@@ -205,6 +205,7 @@ export function Sidebar() {
     { icon: TrendingUp, label: t(language, 'sidebar.sales'), href: '/sales' },
     { icon: Target, label: t(language, 'sidebar.estimations'), href: '/estimations' },
     { icon: Package, label: 'Inventario', href: '/inventory' },
+    { icon: Layers, label: 'Artículos', href: '/articles' },
   ]
 
   return (
