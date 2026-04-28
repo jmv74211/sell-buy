@@ -12,32 +12,54 @@ interface InventoryItem {
   estimated_sale_price?: number;
 }
 
+interface Article {
+  article_code: number;
+  article_name: string;
+  platform_id: number;
+}
+
 export function InventoryPage() {
   const language = useSettingsStore((state) => state.language);
-  const { token } = useAuthStore();
+  const { token, clearAuth } = useAuthStore();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
 
+  const handleRefreshSession = () => {
+    clearAuth();
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     if (!token) return;
 
-    const fetchInventory = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await inventoryService.getAvailableInventory(token);
-        setInventory(data);
+        const [inventoryData, articlesData] = await Promise.all([
+          inventoryService.getAvailableInventory(token),
+          inventoryService.getArticles(),
+        ]);
+        setInventory(inventoryData);
+        setArticles(articlesData);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching inventory');
-        console.error('Error fetching inventory:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Error fetching data';
+        setError(errorMessage);
+
+        // Check if it's an authentication error
+        if (errorMessage.includes('401')) {
+          console.error('Session expired. Please log in again.');
+        }
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInventory();
+    fetchData();
   }, [token]);
 
   const totalValue = inventory.reduce(
@@ -45,7 +67,24 @@ export function InventoryPage() {
     0
   );
 
-  const filteredInventory = inventory.filter(item =>
+  const getArticleName = (articleCode?: number): string => {
+    if (!articleCode) return '';
+    const article = articles.find((a) => a.article_code === articleCode);
+    return article ? article.article_name : '';
+  };
+
+  // Group inventory items by article_code and sum quantities
+  const groupedInventory = inventory.reduce((acc, item) => {
+    const existingItem = acc.find((i) => i.article_code === item.article_code);
+    if (existingItem) {
+      existingItem.quantity_available += item.quantity_available;
+    } else {
+      acc.push({ ...item });
+    }
+    return acc;
+  }, [] as InventoryItem[]);
+
+  const filteredInventory = groupedInventory.filter(item =>
     item.article_name.toLowerCase().includes(searchText.toLowerCase()) ||
     (item.article_code?.toString().includes(searchText))
   );
@@ -62,8 +101,22 @@ export function InventoryPage() {
         {loading ? (
           <p className="text-gray-600">Cargando inventario...</p>
         ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center justify-between">
+            <div>
+              <p className="font-semibold">Error al cargar el inventario</p>
+              <p className="text-sm">{error}</p>
+              {error.includes('401') && (
+                <p className="text-sm mt-2">Tu sesión ha expirado. Por favor, inicia sesión nuevamente.</p>
+              )}
+            </div>
+            {error.includes('401') && (
+              <button
+                onClick={handleRefreshSession}
+                className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold transition-colors flex-shrink-0"
+              >
+                Ir a Login
+              </button>
+            )}
           </div>
         ) : inventory.length === 0 ? (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
@@ -104,7 +157,7 @@ export function InventoryPage() {
                   {filteredInventory.length > 0 ? (
                     filteredInventory.map((item, index) => (
                       <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-gray-900">{item.article_name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{getArticleName(item.article_code) || item.article_name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.article_code ? item.article_code : '—'}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className="font-semibold text-blue-600">{item.quantity_available}</span>

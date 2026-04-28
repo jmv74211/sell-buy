@@ -115,13 +115,22 @@ class InventoryService {
 
   // Available inventory for sale
   async getAvailableInventory(token: string) {
+    console.log('getAvailableInventory called with token:', token?.substring(0, 20) + '...');
+
     const response = await fetch(`${this.baseUrl}/api/inventory-view/available`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
     })
-    if (!response.ok) throw new Error('Failed to fetch available inventory')
+
+    console.log('getAvailableInventory response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch available inventory. Status:', response.status, 'Response:', errorText);
+      throw new Error(`Failed to fetch available inventory: ${response.status} - ${errorText}`)
+    }
     return response.json()
   }
 }
