@@ -8,7 +8,7 @@ import { Plus, X, Edit2, Trash2, Check, Upload } from 'lucide-react';
 
 export function ArticlesPage() {
   const language = useSettingsStore((state) => state.language);
-  const { token } = useAuthStore();
+  const { token, clearAuth } = useAuthStore();
   const [articles, setArticles] = useState<Article[]>([]);
   const [platforms, setPlatforms] = useState<PlatformRange[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,18 @@ export function ArticlesPage() {
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleRefreshSession = () => {
+    clearAuth();
+    window.location.href = '/login';
+  };
+
+  const handleAuthError = (errorMsg: string) => {
+    if (errorMsg.includes('Could not validate credentials') || errorMsg.includes('401')) {
+      showToast('error', 'Tu sesión ha expirado. Redirigiendo...');
+      setTimeout(() => handleRefreshSession(), 2000);
+    }
   };
 
   useEffect(() => {
@@ -91,7 +103,12 @@ export function ArticlesPage() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error al crear artículo';
       console.error('Error creating article:', err);
-      showToast('error', errorMsg);
+
+      if (errorMsg.includes('Could not validate credentials') || errorMsg.includes('401')) {
+        showToast('error', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      } else {
+        showToast('error', errorMsg);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -198,7 +215,12 @@ export function ArticlesPage() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error al eliminar artículo';
       console.error('Error deleting article:', err);
-      showToast('error', errorMsg);
+
+      if (errorMsg.includes('Could not validate credentials') || errorMsg.includes('401')) {
+        handleAuthError(errorMsg);
+      } else {
+        showToast('error', errorMsg);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -305,7 +327,12 @@ export function ArticlesPage() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error al importar artículos';
       console.error('Error importing articles:', err);
-      showToast('error', errorMsg);
+
+      if (errorMsg.includes('Could not validate credentials') || errorMsg.includes('401')) {
+        handleAuthError(errorMsg);
+      } else {
+        showToast('error', errorMsg);
+      }
     } finally {
       setIsSaving(false);
       setImportingPlatformId(null);

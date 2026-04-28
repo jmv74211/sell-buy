@@ -1,4 +1,5 @@
 import type { Article, PlatformRange } from '@/types/api'
+import { fetchWithAuth } from './authInterceptor'
 
 class InventoryService {
   private baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -17,11 +18,10 @@ class InventoryService {
   }
 
   async createPlatform(platform: Omit<PlatformRange, 'id' | 'created_at'>, token: string) {
-    const response = await fetch(`${this.baseUrl}/api/inventory/platforms`, {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/inventory/platforms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(platform),
     })
@@ -49,24 +49,28 @@ class InventoryService {
   }
 
   async createArticle(article: Omit<Article, 'created_at'>, token: string) {
-    const response = await fetch(`${this.baseUrl}/api/inventory/articles`, {
+    const url = `${this.baseUrl}/api/inventory/articles`;
+
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(article),
-    })
-    if (!response.ok) throw new Error('Failed to create article')
-    return response.json()
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to create article' }));
+      throw new Error(error.detail || 'Failed to create article');
+    }
+    return response.json();
   }
 
   async createArticlesBulk(articles: Omit<Article, 'created_at'>[], token: string): Promise<Article[]> {
-    const response = await fetch(`${this.baseUrl}/api/inventory/articles/bulk`, {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/inventory/articles/bulk`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(articles),
     })
@@ -75,39 +79,26 @@ class InventoryService {
   }
 
   async updateArticle(code: number, article: Omit<Article, 'created_at'>, token: string) {
-    console.log('updateArticle called with:', { code, article, tokenLength: token?.length });
-
     const url = `${this.baseUrl}/api/inventory/articles/${code}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
 
-    console.log('Request URL:', url);
-    console.log('Headers:', { 'Content-Type': headers['Content-Type'], 'Authorization': `Bearer ${token?.substring(0, 20)}...` });
-
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'PUT',
-      headers: headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(article),
     })
 
-    console.log('Response status:', response.status);
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to update article' }))
-      console.error('Error response:', error);
       throw new Error(error.detail || 'Failed to update article')
     }
     return response.json()
   }
 
   async deleteArticle(code: number, token: string) {
-    const response = await fetch(`${this.baseUrl}/api/inventory/articles/${code}`, {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/inventory/articles/${code}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
     if (!response.ok) throw new Error('Failed to delete article')
     return response.json()
@@ -115,20 +106,12 @@ class InventoryService {
 
   // Available inventory for sale
   async getAvailableInventory(token: string) {
-    console.log('getAvailableInventory called with token:', token?.substring(0, 20) + '...');
-
-    const response = await fetch(`${this.baseUrl}/api/inventory-view/available`, {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/inventory-view/available`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     })
-
-    console.log('getAvailableInventory response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Failed to fetch available inventory. Status:', response.status, 'Response:', errorText);
       throw new Error(`Failed to fetch available inventory: ${response.status} - ${errorText}`)
     }
     return response.json()
