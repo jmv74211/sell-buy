@@ -55,15 +55,19 @@ def import_csv(
     print(f"[IMPORT] CSV lines read: {len(lines)}")
 
     # Detect where the actual header row is (skip summary rows at the top)
-    # The header row contains 'ARTÍCULO' or 'ARTICULO'
+    # The header row must contain both 'ARTÍCULO' and 'PRECIO COMPRA' (or their variants)
     header_idx = None
     for i, line in enumerate(lines):
-        if 'ARTÍCULO' in line or 'ARTICULO' in line:
+        line_upper = line.upper()
+        has_articulo = 'ARTÍCULO' in line or 'ARTICULO' in line
+        has_precio = 'PRECIO COMPRA' in line or 'PRECIO' in line
+        # Must have both markers to be the real header
+        if has_articulo and has_precio:
             header_idx = i
             break
 
     if header_idx is None:
-        raise HTTPException(status_code=400, detail="No se encontró la cabecera del CSV (columna ARTÍCULO)")
+        raise HTTPException(status_code=400, detail="No se encontró la cabecera del CSV (debe contener ARTÍCULO y PRECIO COMPRA)")
 
     print(f"[IMPORT] Header found at index: {header_idx}")
 

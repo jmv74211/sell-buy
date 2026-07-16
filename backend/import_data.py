@@ -89,8 +89,9 @@ def import_csv_data(db: Session, csv_path: str):
 
         dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
 
-        # Saltar las primeras 7 filas de resumen/totales antes de la cabecera
-        for _ in range(7):
+        # Saltar las primeras 22 filas de resumen/totales antes de la cabecera
+        # (Líneas 1-22: título, resumen general, estadísticas de inversión y recuperación)
+        for _ in range(22):
             file.readline()
 
         reader = csv.DictReader(file, dialect=dialect)
