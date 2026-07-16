@@ -1,5 +1,5 @@
 import apiClient from './api'
-import type { SummaryStats } from '@/types/api'
+import type { SummaryStats, DashboardStats } from '@/types/api'
 
 export const analyticsService = {
   getSummary: async (): Promise<SummaryStats> => {
@@ -14,6 +14,11 @@ export const analyticsService = {
 
   getProfitByArticle: async () => {
     const response = await apiClient.get('/analytics/profit-by-article')
+    return response.data
+  },
+
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const response = await apiClient.get('/analytics/dashboard-stats')
     return response.data
   },
 }

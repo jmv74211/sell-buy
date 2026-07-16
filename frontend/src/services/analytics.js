@@ -12,4 +12,8 @@ export const analyticsService = {
         const response = await apiClient.get('/analytics/profit-by-article');
         return response.data;
     },
+    getDashboardStats: async () => {
+        const response = await apiClient.get('/analytics/dashboard-stats');
+        return response.data;
+    },
 };

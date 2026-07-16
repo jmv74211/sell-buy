@@ -10,7 +10,7 @@ import { analyticsService } from '@/services/analytics'
 import { estimationService } from '@/services/estimations'
 import { purchaseService } from '@/services/purchases'
 import { saleService } from '@/services/sales'
-import type { SummaryStats, Estimation, Purchase, Sale } from '@/types/api'
+import type { SummaryStats, Estimation, Purchase, Sale, DashboardStats } from '@/types/api'
 import {
   AreaChart,
   Area,
@@ -34,12 +34,12 @@ export function DashboardPage() {
   const [chartRange, setChartRange] = React.useState<'week' | 'month' | 'all'>('month')
   const [tableSortKey, setTableSortKey] = React.useState<string>('id')
   const [tableSortDir, setTableSortDir] = React.useState<'asc' | 'desc'>('desc')
-  const [customStats, setCustomStats] = React.useState({
-    totalSpent: 0,
-    recoveredEstimated: 0,
-    totalExpectedProfit: 0,
-    totalEarned: 0,
-    totalBalance: 0,
+  const [customStats, setCustomStats] = React.useState<DashboardStats>({
+    investment: { total_spent: 0, capital_immobilized: 0, cost_hacienda_current: 0, cost_hacienda_total: 0 },
+    recovery: { money_recovered: 0, pending_sales: 0, total_expected_recovery: 0, balance: 0 },
+    profitability: { realized_profit: 0, pending_profit: 0, total_profit: 0, avg_profit_per_sale: 0 },
+    percentages: { recovery_pct: 0, roi: 0 },
+    counts: { total_purchases: 0, sold_count: 0, pending_count: 0, conservado_count: 0 }
   })
 
   const getRowBackgroundColor = (sale: Sale | null, estimation: Estimation | undefined) => {
@@ -72,6 +72,7 @@ export function DashboardPage() {
     setLoading(true)
     try {
       const summaryStats = await analyticsService.getSummary()
+      const dashboardStats = await analyticsService.getDashboardStats()
       const estimationsData = await estimationService.getAll()
       const purchasesData = await purchaseService.getAll()
       const salesData = await saleService.getAll()
@@ -80,6 +81,7 @@ export function DashboardPage() {
       setEstimations(estimationsData)
       setPurchases(purchasesData)
       setSales(salesData)
+      setCustomStats(dashboardStats)
 
       // Default selected date: most recent purchase date
       if (purchasesData.length > 0) {
@@ -89,44 +91,6 @@ export function DashboardPage() {
           .at(-1) ?? ''
         setSelectedDate(latestDate)
       }
-
-      // Calculate custom statistics — same formulas as the spreadsheet
-      // Filtrar estimaciones válidas (con precio estimado > 0)
-      const validEstimations = estimationsData.filter(e => e.estimated_sale_price && e.estimated_sale_price > 0)
-
-      // TOTAL GASTADO = SUM(PRECIO COMPRA)
-      const totalSpent = purchasesData.reduce((sum, p) => sum + p.amount, 0)
-
-      // GANANCIA NETA por artículo: usa actual_profit guardado (puede incluir comisiones)
-      // Si no hay actual_profit guardado, calcula venta - compra como fallback
-      const gananciaNeta = (e: Estimation) => {
-        if (!e.sale_id) return 0
-        if (e.actual_profit != null) return e.actual_profit
-        const sale = salesData.find(s => s.id === e.sale_id)
-        const purchase = purchasesData.find(p => p.id === e.purchase_id)
-        return sale && purchase ? sale.amount - purchase.amount : 0
-      }
-
-      // TOTAL GANADO = SUM(GANANCIA NETA)
-      const totalEarned = validEstimations.reduce((sum, e) => sum + gananciaNeta(e), 0)
-
-      // SALDO RECUPERADO ESTIMADO = SUM(ESTIMACIÓN VENTA) - SUM(GANANCIA NETA)
-      const sumEstVenta = validEstimations.reduce((sum, e) => sum + (e.estimated_sale_price ?? 0), 0)
-      const recoveredEstimated = sumEstVenta - totalEarned
-
-      // TOTAL ESPERADO GANAR = SUM(GANANCIA ESTIMADA)
-      const totalExpectedProfit = validEstimations.reduce((sum, e) => sum + e.estimated_profit, 0)
-
-      // SALDO = SALDO_RECUPERADO - TOTAL_GASTADO + TOTAL_GANADO
-      const totalBalance = recoveredEstimated - totalSpent + totalEarned
-
-      setCustomStats({
-        totalSpent,
-        recoveredEstimated,
-        totalExpectedProfit,
-        totalEarned,
-        totalBalance,
-      })
     } catch (error) {
       console.error('Error loading analytics:', error)
     } finally {
@@ -237,38 +201,96 @@ export function DashboardPage() {
           </div>
         ) : stats ? (
           <>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-              <StatCard
-                title={t(language, 'dashboard.totalBalance')}
-                value={`${customStats.totalBalance.toFixed(2)}€`}
-                icon={<Activity size={24} />}
-                color={customStats.totalBalance >= 0 ? 'green' : 'red'}
-              />
-              <StatCard
-                title={t(language, 'dashboard.totalSpent')}
-                value={`${customStats.totalSpent.toFixed(2)}€`}
-                icon={<TrendingDown size={24} />}
-                color="red"
-              />
-              <StatCard
-                title={t(language, 'dashboard.recoveredEstimated')}
-                value={`${customStats.recoveredEstimated.toFixed(2)}€`}
-                icon={<Wallet size={24} />}
-                color="purple"
-              />
-              <StatCard
-                title={t(language, 'dashboard.expectedProfit')}
-                value={`${customStats.totalExpectedProfit.toFixed(2)}€`}
-                icon={<Package size={24} />}
-                color="blue"
-              />
-              <StatCard
-                title={t(language, 'dashboard.totalEarned')}
-                value={`${customStats.totalEarned.toFixed(2)}€`}
-                icon={<TrendingUp size={24} />}
-                color={customStats.totalEarned >= 0 ? 'green' : 'red'}
-              />
+            {/* Stats Grid - Structured like CSV Summary (4 rows of 4 stats each) */}
+            <div className="space-y-6 mb-8">
+              {/* Row 1: INVERSIÓN (Investment) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow-md p-4 border-l-4 border-red-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">💰 Total Gastado</p>
+                  <p className="text-2xl font-bold text-red-600">{customStats.investment.total_spent.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md p-4 border-l-4 border-orange-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📦 Capital Inmovilizado</p>
+                  <p className="text-2xl font-bold text-orange-600">{customStats.investment.capital_immobilized.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow-md p-4 border-l-4 border-amber-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">🏛️ Coste Hacienda Actual</p>
+                  <p className="text-2xl font-bold text-amber-600">{customStats.investment.cost_hacienda_current.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📋 Coste Hacienda Total</p>
+                  <p className="text-2xl font-bold text-yellow-600">{customStats.investment.cost_hacienda_total.toFixed(2)}€</p>
+                </div>
+              </div>
+
+              {/* Row 2: RECUPERACIÓN (Recovery) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md p-4 border-l-4 border-green-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">💸 Dinero Recuperado</p>
+                  <p className="text-2xl font-bold text-green-600">{customStats.recovery.money_recovered.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg shadow-md p-4 border-l-4 border-cyan-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">⏳ Ventas Pendientes</p>
+                  <p className="text-2xl font-bold text-cyan-600">{customStats.recovery.pending_sales.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">🎯 Recuperación Total Prevista</p>
+                  <p className="text-2xl font-bold text-blue-600">{customStats.recovery.total_expected_recovery.toFixed(2)}€</p>
+                </div>
+                <div className={`bg-gradient-to-br ${customStats.recovery.balance >= 0 ? 'from-green-50 to-green-100 border-green-500' : 'from-red-50 to-red-100 border-red-500'} rounded-lg shadow-md p-4 border-l-4`}>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📊 Saldo</p>
+                  <p className={`text-2xl font-bold ${customStats.recovery.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {customStats.recovery.balance >= 0 ? '+' : ''}{customStats.recovery.balance.toFixed(2)}€
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 3: RENTABILIDAD (Profitability) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow-md p-4 border-l-4 border-emerald-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">✅ Beneficio Realizado</p>
+                  <p className="text-2xl font-bold text-emerald-600">{customStats.profitability.realized_profit.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow-md p-4 border-l-4 border-teal-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">⏳ Beneficio Pendiente</p>
+                  <p className="text-2xl font-bold text-teal-600">{customStats.profitability.pending_profit.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-lime-50 to-lime-100 rounded-lg shadow-md p-4 border-l-4 border-lime-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">🎁 Beneficio Total</p>
+                  <p className="text-2xl font-bold text-lime-600">{customStats.profitability.total_profit.toFixed(2)}€</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md p-4 border-l-4 border-green-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📈 Beneficio Medio/Venta</p>
+                  <p className="text-2xl font-bold text-green-600">{customStats.profitability.avg_profit_per_sale.toFixed(2)}€</p>
+                </div>
+              </div>
+
+              {/* Row 4: PORCENTAJES (Percentages) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md p-4 border-l-4 border-purple-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📊 Recuperación (%)</p>
+                  <p className="text-2xl font-bold text-purple-600">{customStats.percentages.recovery_pct.toFixed(2)}%</p>
+                </div>
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📈 Rentabilidad (ROI)</p>
+                  <p className="text-2xl font-bold text-indigo-600">{customStats.percentages.roi.toFixed(2)}%</p>
+                </div>
+                <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg shadow-md p-4 border-l-4 border-violet-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">📋 Total Articulos</p>
+                  <p className="text-2xl font-bold text-violet-600">{customStats.counts.total_purchases}</p>
+                </div>
+                <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg shadow-md p-4 border-l-4 border-pink-500">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">� Distribución</p>
+                  <p className="text-lg font-bold text-pink-600">
+                    <span title="Vendidos">✅ {customStats.counts.sold_count}</span>
+                    {' / '}
+                    <span title="Pendientes de vender">⏳ {customStats.counts.pending_count}</span>
+                    {' / '}
+                    <span title="Conservado">🗃️ {customStats.counts.conservado_count}</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Vendidos / Pendientes / Conservado</p>
+                </div>
+              </div>
             </div>
 
             {/* Daily Balance View + Evolution Chart */}
