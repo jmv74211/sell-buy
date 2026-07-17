@@ -201,95 +201,121 @@ export function DashboardPage() {
           </div>
         ) : stats ? (
           <>
-            {/* Stats Grid - Structured like CSV Summary (4 rows of 4 stats each) */}
-            <div className="space-y-6 mb-8">
-              {/* Row 1: INVERSIÓN (Investment) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow-md p-4 border-l-4 border-red-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">💰 Total Gastado</p>
-                  <p className="text-2xl font-bold text-red-600">{customStats.investment.total_spent.toFixed(2)}€</p>
+            {/* Stats Grid - 3 grouped panels: INVERSIÓN, RECUPERACIÓN, RENTABILIDAD */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+              {/* INVERSIÓN */}
+              <div className="rounded-lg shadow-md overflow-hidden">
+                <div className="bg-orange-500 px-4 py-3 flex items-center gap-2">
+                  <Wallet size={16} className="text-white" />
+                  <h3 className="font-bold text-white text-sm tracking-widest uppercase">Inversión</h3>
                 </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md p-4 border-l-4 border-orange-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📦 Capital Inmovilizado</p>
-                  <p className="text-2xl font-bold text-orange-600">{customStats.investment.capital_immobilized.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow-md p-4 border-l-4 border-amber-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">🏛️ Coste Hacienda Actual</p>
-                  <p className="text-2xl font-bold text-amber-600">{customStats.investment.cost_hacienda_current.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📋 Coste Hacienda Total</p>
-                  <p className="text-2xl font-bold text-yellow-600">{customStats.investment.cost_hacienda_total.toFixed(2)}€</p>
+                <div className="bg-white divide-y divide-gray-100">
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Gastado</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.investment.total_spent.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5 group relative">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide cursor-help border-b border-dashed border-gray-400">
+                      Capital Inmovilizado
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.investment.capital_immobilized.toFixed(2)} €</span>
+                    <div className="absolute left-4 bottom-full mb-1.5 bg-white border border-gray-200 rounded shadow-lg px-3 py-1.5 text-xs text-gray-700 whitespace-nowrap z-10 hidden group-hover:block pointer-events-none">
+                      Dinero invertido en artículos pendientes de venta.
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Coste Hacienda Actual</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.investment.cost_hacienda_current.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Coste Hacienda Total</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.investment.cost_hacienda_total.toFixed(2)} €</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Row 2: RECUPERACIÓN (Recovery) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md p-4 border-l-4 border-green-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">💸 Dinero Recuperado</p>
-                  <p className="text-2xl font-bold text-green-600">{customStats.recovery.money_recovered.toFixed(2)}€</p>
+              {/* RECUPERACIÓN */}
+              <div className="rounded-lg shadow-md overflow-hidden">
+                <div className="bg-green-600 px-4 py-3 flex items-center gap-2">
+                  <TrendingUp size={16} className="text-white" />
+                  <h3 className="font-bold text-white text-sm tracking-widest uppercase">Recuperación</h3>
                 </div>
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg shadow-md p-4 border-l-4 border-cyan-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">⏳ Ventas Pendientes</p>
-                  <p className="text-2xl font-bold text-cyan-600">{customStats.recovery.pending_sales.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-4 border-l-4 border-blue-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">🎯 Recuperación Total Prevista</p>
-                  <p className="text-2xl font-bold text-blue-600">{customStats.recovery.total_expected_recovery.toFixed(2)}€</p>
-                </div>
-                <div className={`bg-gradient-to-br ${customStats.recovery.balance >= 0 ? 'from-green-50 to-green-100 border-green-500' : 'from-red-50 to-red-100 border-red-500'} rounded-lg shadow-md p-4 border-l-4`}>
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📊 Saldo</p>
-                  <p className={`text-2xl font-bold ${customStats.recovery.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {customStats.recovery.balance >= 0 ? '+' : ''}{customStats.recovery.balance.toFixed(2)}€
-                  </p>
-                </div>
-              </div>
-
-              {/* Row 3: RENTABILIDAD (Profitability) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow-md p-4 border-l-4 border-emerald-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">✅ Beneficio Realizado</p>
-                  <p className="text-2xl font-bold text-emerald-600">{customStats.profitability.realized_profit.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow-md p-4 border-l-4 border-teal-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">⏳ Beneficio Pendiente</p>
-                  <p className="text-2xl font-bold text-teal-600">{customStats.profitability.pending_profit.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-lime-50 to-lime-100 rounded-lg shadow-md p-4 border-l-4 border-lime-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">🎁 Beneficio Total</p>
-                  <p className="text-2xl font-bold text-lime-600">{customStats.profitability.total_profit.toFixed(2)}€</p>
-                </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md p-4 border-l-4 border-green-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📈 Beneficio Medio/Venta</p>
-                  <p className="text-2xl font-bold text-green-600">{customStats.profitability.avg_profit_per_sale.toFixed(2)}€</p>
+                <div className="bg-white divide-y divide-gray-100">
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dinero Recuperado</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.recovery.money_recovered.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ventas Pendientes</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.recovery.pending_sales.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Recuperación Total Prevista</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.recovery.total_expected_recovery.toFixed(2)} €</span>
+                  </div>
+                  <div className={`flex justify-between items-center px-4 py-2.5 ${customStats.recovery.balance < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Saldo</span>
+                    <span className={`text-sm font-bold ${customStats.recovery.balance < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                      {customStats.recovery.balance >= 0 ? '+' : ''}{customStats.recovery.balance.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Recuperación (%)</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.percentages.recovery_pct.toFixed(2)}%</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Row 4: PORCENTAJES (Percentages) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md p-4 border-l-4 border-purple-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📊 Recuperación (%)</p>
-                  <p className="text-2xl font-bold text-purple-600">{customStats.percentages.recovery_pct.toFixed(2)}%</p>
+              {/* RENTABILIDAD */}
+              <div className="rounded-lg shadow-md overflow-hidden">
+                <div className="bg-blue-500 px-4 py-3 flex items-center gap-2">
+                  <Activity size={16} className="text-white" />
+                  <h3 className="font-bold text-white text-sm tracking-widest uppercase">Rentabilidad</h3>
                 </div>
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📈 Rentabilidad (ROI)</p>
-                  <p className="text-2xl font-bold text-indigo-600">{customStats.percentages.roi.toFixed(2)}%</p>
+                <div className="bg-white divide-y divide-gray-100">
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Beneficio Realizado</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.profitability.realized_profit.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Beneficio Pendiente</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.profitability.pending_profit.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Beneficio Total</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.profitability.total_profit.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Beneficio Medio/Venta</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.profitability.avg_profit_per_sale.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rentabilidad (ROI)</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.percentages.roi.toFixed(2)}%</span>
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg shadow-md p-4 border-l-4 border-violet-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">📋 Total Articulos</p>
-                  <p className="text-2xl font-bold text-violet-600">{customStats.counts.total_purchases}</p>
-                </div>
-                <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg shadow-md p-4 border-l-4 border-pink-500">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">� Distribución</p>
-                  <p className="text-lg font-bold text-pink-600">
-                    <span title="Vendidos">✅ {customStats.counts.sold_count}</span>
-                    {' / '}
-                    <span title="Pendientes de vender">⏳ {customStats.counts.pending_count}</span>
-                    {' / '}
-                    <span title="Conservado">🗃️ {customStats.counts.conservado_count}</span>
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Vendidos / Pendientes / Conservado</p>
-                </div>
+              </div>
+
+            </div>
+
+            {/* Counts row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3 flex flex-col items-center">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Artículos</span>
+                <span className="text-xl font-bold text-gray-800">{customStats.counts.total_purchases}</span>
+              </div>
+              <div className="bg-green-50 rounded-lg shadow-sm border border-green-100 px-4 py-3 flex flex-col items-center">
+                <span className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">✅ Vendidos</span>
+                <span className="text-xl font-bold text-green-700">{customStats.counts.sold_count}</span>
+              </div>
+              <div className="bg-yellow-50 rounded-lg shadow-sm border border-yellow-100 px-4 py-3 flex flex-col items-center">
+                <span className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1">⏳ Pendientes</span>
+                <span className="text-xl font-bold text-yellow-700">{customStats.counts.pending_count}</span>
+              </div>
+              <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-100 px-4 py-3 flex flex-col items-center">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">🗃️ Conservado</span>
+                <span className="text-xl font-bold text-gray-700">{customStats.counts.conservado_count}</span>
               </div>
             </div>
 
