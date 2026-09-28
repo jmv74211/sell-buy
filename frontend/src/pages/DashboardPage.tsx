@@ -14,12 +14,16 @@ import type { SummaryStats, Estimation, Purchase, Sale, DashboardStats } from '@
 import {
   AreaChart,
   Area,
+  Bar,
+  BarChart,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  LabelList,
 } from 'recharts'
 
 export function DashboardPage() {
@@ -32,6 +36,7 @@ export function DashboardPage() {
   const [loading, setLoading] = React.useState(true)
   const [selectedDate, setSelectedDate] = React.useState<string>('')
   const [chartRange, setChartRange] = React.useState<'week' | 'month' | 'all'>('month')
+  const [barChartRange, setBarChartRange] = React.useState<'last7' | 'last30' | 'last90' | 'all'>('last30')
   const [tableSortKey, setTableSortKey] = React.useState<string>('id')
   const [tableSortDir, setTableSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [customStats, setCustomStats] = React.useState<DashboardStats>({
@@ -98,7 +103,7 @@ export function DashboardPage() {
     }
   }, [])
 
-  const chartData = React.useMemo(() => {
+  const dailyBalanceData = React.useMemo(() => {
     // Compute per-day balance: Σ(estimated_sale_price) - Σ(purchase_amount)
     const byDate = new Map<string, number>()
     for (const p of purchases) {
@@ -107,8 +112,19 @@ export function DashboardPage() {
       const estPrice = est?.estimated_sale_price ?? 0
       byDate.set(date, (byDate.get(date) ?? 0) + estPrice - p.amount)
     }
-    const sortedDates = [...byDate.keys()].sort()
+    return [...byDate.keys()]
+      .sort()
+      .map(date => {
+        const [y, m, d] = date.split('-')
+        return {
+          isoDate: date,
+          date: `${d}/${m}/${y}`,
+          balance: Math.round((byDate.get(date) ?? 0) * 100) / 100,
+        }
+      })
+  }, [purchases, estimations])
 
+  const chartData = React.useMemo(() => {
     const now = new Date()
     const subtractDays = (n: number) => {
       const d = new Date(now)
@@ -122,14 +138,28 @@ export function DashboardPage() {
         ? subtractDays(30)
         : '0000-00-00'
 
-    // Per-day balance (same formula as the table: Σ est_sale_price - Σ purchase_amount)
-    return sortedDates
-      .filter(d => d >= cutoff)
-      .map(date => {
-        const [y, m, d] = date.split('-')
-        return { date: `${d}/${m}/${y}`, balance: Math.round((byDate.get(date) ?? 0) * 100) / 100 }
-      })
-  }, [purchases, estimations, chartRange])
+    return dailyBalanceData.filter(d => d.isoDate >= cutoff)
+  }, [dailyBalanceData, chartRange])
+
+  const barChartData = React.useMemo(() => {
+    const now = new Date()
+    const subtractDays = (n: number) => {
+      const d = new Date(now)
+      d.setDate(d.getDate() - n)
+      return localDateStr(d)
+    }
+
+    const cutoff =
+      barChartRange === 'last7'
+        ? subtractDays(7)
+        : barChartRange === 'last30'
+        ? subtractDays(30)
+        : barChartRange === 'last90'
+        ? subtractDays(90)
+        : '0000-00-00'
+
+    return dailyBalanceData.filter(d => d.isoDate >= cutoff)
+  }, [dailyBalanceData, barChartRange])
 
   React.useEffect(() => {
     loadData()
@@ -471,6 +501,86 @@ export function DashboardPage() {
                       })()}
                     </div>
                   </div>
+                </div>
+              )
+            })()}
+
+            {/* Daily Balance Bar Chart */}
+            {(() => {
+              const rangeLabels = {
+                last7: t(language, 'dashboard.last7Days'),
+                last30: t(language, 'dashboard.lastMonth'),
+                last90: t(language, 'dashboard.last3Months'),
+                all: t(language, 'dashboard.allHistory'),
+              }
+              const showBarLabels = barChartRange === 'last7' || barChartRange === 'last30'
+
+              return (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h2 className="text-lg font-bold text-gray-900">{t(language, 'dashboard.dailyBalanceBars')}</h2>
+                    <select
+                      value={barChartRange}
+                      onChange={e => setBarChartRange(e.target.value as 'last7' | 'last30' | 'last90' | 'all')}
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {(Object.keys(rangeLabels) as Array<keyof typeof rangeLabels>).map(k => (
+                        <option key={k} value={k}>{rangeLabels[k]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {barChartData.length === 0 ? (
+                    <p className="text-gray-400 text-center text-sm py-12">{t(language, 'dashboard.noDataForPeriod')}</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={barChartData}
+                        margin={{ top: showBarLabels ? 20 : 4, right: 12, left: 0, bottom: showBarLabels ? 32 : 12 }}
+                        onClick={(e) => {
+                          const point = e?.activePayload?.[0]?.payload
+                          if (!point?.isoDate) return
+                          setSelectedDate(point.isoDate)
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                        <YAxis tick={{ fontSize: 11 }} width={56} unit=" €" />
+                        <Tooltip content={<BalanceTooltip />} />
+                        <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1.5} />
+                        <Bar dataKey="balance" radius={[4, 4, 0, 0]}>
+                          {barChartData.map((entry) => (
+                            <Cell key={entry.isoDate} fill={entry.balance >= 0 ? '#86efac' : '#fca5a5'} />
+                          ))}
+                          {showBarLabels && (
+                            <LabelList
+                              dataKey="balance"
+                              content={({ x = 0, y = 0, width = 0, height = 0, value = 0 }: any) => {
+                                const numericValue = Number(value)
+                                const barX = Number(x)
+                                const barY = Number(y)
+                                const barWidth = Number(width)
+                                const barHeight = Number(height)
+                                return (
+                                  <text
+                                    x={barX + barWidth / 2}
+                                    y={numericValue >= 0 ? barY - 8 : barY + barHeight + 22}
+                                    textAnchor="middle"
+                                    fill={numericValue >= 0 ? '#15803d' : '#b91c1c'}
+                                    fontSize={11}
+                                    fontWeight={600}
+                                  >
+                                    {numericValue >= 0 ? '+' : ''}{numericValue.toFixed(2)} €
+                                  </text>
+                                )
+                              }}
+                            />
+                          )}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               )
             })()}

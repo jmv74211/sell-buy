@@ -105,6 +105,7 @@ def import_csv_data(db: Session, csv_path: str):
                     print(f"⚠️  Fila {idx}: Artículo vacío, saltando...")
                     continue
 
+                # Columna 'NO CERRADO' (col P) ignorada intencionalmente
                 purchase_price = parse_decimal(row.get('PRECIO COMPRA', '0'))
                 estimation_price = parse_decimal(row.get('ESTIMACIÓN VENTA', '0'))
                 estimated_profit_val = parse_decimal(row.get('GANANCIA ESTIMADA', '0'))
