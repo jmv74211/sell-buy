@@ -14,6 +14,8 @@ import type { SummaryStats, Estimation, Purchase, Sale, DashboardStats } from '@
 import {
   AreaChart,
   Area,
+  Line,
+  LineChart,
   Bar,
   BarChart,
   Cell,
@@ -37,6 +39,7 @@ export function DashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<string>('')
   const [chartRange, setChartRange] = React.useState<'week' | 'month' | 'all'>('month')
   const [barChartRange, setBarChartRange] = React.useState<'last7' | 'last30' | 'last90' | 'all'>('last30')
+  const [monthlyChartMode, setMonthlyChartMode] = React.useState<'estimated' | 'afterExpenses'>('afterExpenses')
   const [tableSortKey, setTableSortKey] = React.useState<string>('id')
   const [tableSortDir, setTableSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [customStats, setCustomStats] = React.useState<DashboardStats>({
@@ -160,6 +163,35 @@ export function DashboardPage() {
 
     return dailyBalanceData.filter(d => d.isoDate >= cutoff)
   }, [dailyBalanceData, barChartRange])
+
+  const monthlyProfitData = React.useMemo(() => {
+    const estimationsByPurchase = new Map(estimations.map(estimation => [estimation.purchase_id, estimation]))
+    const profitsByMonth = new Map<string, number>()
+
+    for (const purchase of purchases) {
+      const estimatedProfit = estimationsByPurchase.get(purchase.id)?.estimated_profit ?? 0
+      const month = purchase.purchase_date.slice(0, 7)
+      const currentProfit = profitsByMonth.get(month) ?? 0
+      const monthlyValue = monthlyChartMode === 'afterExpenses'
+        ? estimatedProfit === 0 ? -purchase.amount : estimatedProfit
+        : estimatedProfit
+      profitsByMonth.set(
+        month,
+        currentProfit + monthlyValue,
+      )
+    }
+
+    return [...profitsByMonth.entries()]
+      .sort(([firstMonth], [secondMonth]) => firstMonth.localeCompare(secondMonth))
+      .map(([month, profit]) => ({
+        month,
+        label: new Date(`${month}-01T00:00:00`).toLocaleDateString(
+          language === 'es' ? 'es-ES' : 'en-US',
+          { month: 'short', year: 'numeric' },
+        ),
+        profit: Math.round(profit * 100) / 100,
+      }))
+  }, [estimations, language, monthlyChartMode, purchases])
 
   React.useEffect(() => {
     loadData()
@@ -584,6 +616,58 @@ export function DashboardPage() {
                 </div>
               )
             })()}
+
+            {/* Monthly Total Profit Chart */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 className="text-lg font-bold text-gray-900">{t(language, 'dashboard.monthlyProfit')}</h2>
+                <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={monthlyChartMode === 'afterExpenses'}
+                    onClick={() => setMonthlyChartMode('afterExpenses')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${monthlyChartMode === 'afterExpenses' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    {t(language, 'dashboard.realProfit')}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={monthlyChartMode === 'estimated'}
+                    onClick={() => setMonthlyChartMode('estimated')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${monthlyChartMode === 'estimated' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    {t(language, 'dashboard.idealProfit')}
+                  </button>
+                </div>
+              </div>
+              {monthlyProfitData.length === 0 ? (
+                <p className="text-gray-400 text-center text-sm py-12">{t(language, 'dashboard.noDataForPeriod')}</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyProfitData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 11 }} width={56} unit=" €" />
+                    <Tooltip
+                      formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value.toFixed(2)} €`, t(language, monthlyChartMode === 'estimated' ? 'dashboard.idealProfit' : 'dashboard.realProfit')]}
+                      labelFormatter={label => `${t(language, 'dashboard.month')}: ${label}`}
+                    />
+                    <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="4 4" strokeWidth={1.5} />
+                    <Line
+                      type="monotone"
+                      dataKey="profit"
+                      name={t(language, monthlyChartMode === 'estimated' ? 'dashboard.idealProfit' : 'dashboard.realProfit')}
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      dot={{ fill: '#2563eb', r: 4 }}
+                      activeDot={{ r: 6, fill: '#2563eb' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
 
             {/* Articles Table */}
             <div className="bg-white rounded-lg shadow-md p-6">
