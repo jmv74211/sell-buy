@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { PurchasesPage } from '@/pages/PurchasesPage'
 import { SalesPage } from '@/pages/SalesPage'
 import { EstimationsPage } from '@/pages/EstimationsPage'
+import { ExpensesPage } from '@/pages/ExpensesPage'
 import { InventoryPage } from '@/pages/InventoryPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
@@ -68,6 +69,10 @@ function App() {
                 <EstimationsPage />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/expenses"
+            element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>}
           />
           <Route
             path="/inventory"

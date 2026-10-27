@@ -43,7 +43,7 @@ export function DashboardPage() {
   const [tableSortKey, setTableSortKey] = React.useState<string>('id')
   const [tableSortDir, setTableSortDir] = React.useState<'asc' | 'desc'>('desc')
   const [customStats, setCustomStats] = React.useState<DashboardStats>({
-    investment: { total_spent: 0, capital_immobilized: 0, cost_hacienda_current: 0, cost_hacienda_total: 0 },
+    investment: { total_spent: 0, total_general_expenses: 0, capital_immobilized: 0, cost_hacienda_current: 0, cost_hacienda_total: 0 },
     recovery: { money_recovered: 0, pending_sales: 0, total_expected_recovery: 0, balance: 0 },
     profitability: { realized_profit: 0, pending_profit: 0, total_profit: 0, avg_profit_per_sale: 0 },
     percentages: { recovery_pct: 0, roi: 0 },
@@ -276,6 +276,10 @@ export function DashboardPage() {
                   <div className="flex justify-between items-center px-4 py-2.5">
                     <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Gastado</span>
                     <span className="text-sm font-bold text-gray-900">{customStats.investment.total_spent.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Gastos Generales</span>
+                    <span className="text-sm font-bold text-gray-900">{customStats.investment.total_general_expenses.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between items-center px-4 py-2.5 group relative">
                     <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide cursor-help border-b border-dashed border-gray-400">

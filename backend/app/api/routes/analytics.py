@@ -140,6 +140,10 @@ def get_dashboard_stats(
         models.Purchase.user_id == current_user.id
     ).all()
 
+    expenses = db.query(models.Expense).filter(
+        models.Expense.user_id == current_user.id
+    ).all()
+
     # Create dictionaries for easy lookup
     sales_by_purchase = {s.purchase_id: s for s in sales}
     estimations_by_purchase = {e.purchase_id: e for e in estimations}
@@ -147,6 +151,7 @@ def get_dashboard_stats(
 
     # TOTAL GASTADO = SUM(PRECIO COMPRA)
     total_spent = sum(Decimal(str(p.amount)) for p in purchases)
+    total_general_expenses = sum(Decimal(str(e.amount)) for e in expenses)
 
     # DINERO RECUPERADO = SUM(REVENDIDO POR)
     money_recovered = sum(Decimal(str(s.amount)) for s in sales)
@@ -176,7 +181,7 @@ def get_dashboard_stats(
     total_expected_recovery = money_recovered + pending_sales
 
     # SALDO = RECUPERACIÓN TOTAL PREVISTA - TOTAL GASTADO
-    balance = total_expected_recovery - total_spent
+    balance = total_expected_recovery - total_spent - total_general_expenses
 
     # BENEFICIO REALIZADO = SUM(REVENDIDO POR - PRECIO COMPRA) for sold items
     realized_profit = Decimal(0)
@@ -229,6 +234,7 @@ def get_dashboard_stats(
     return {
         "investment": {
             "total_spent": float(total_spent),
+            "total_general_expenses": float(total_general_expenses),
             "capital_immobilized": float(capital_immobilized),
             "cost_hacienda_current": float(cost_hacienda_current),
             "cost_hacienda_total": float(cost_hacienda_total),

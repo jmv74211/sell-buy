@@ -33,6 +33,15 @@ export interface Purchase {
   created_at: string
 }
 
+export interface Expense {
+  id: number
+  user_id: number
+  article_name: string
+  purchase_date: string
+  amount: number
+  created_at: string
+}
+
 export interface Sale {
   id: number
   purchase_id: number
@@ -69,6 +78,7 @@ export interface SummaryStats {
 export interface DashboardStats {
   investment: {
     total_spent: number
+    total_general_expenses: number
     capital_immobilized: number
     cost_hacienda_current: number
     cost_hacienda_total: number

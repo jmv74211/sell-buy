@@ -76,6 +76,26 @@ class PurchaseResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Expense Schemas
+class ExpenseBase(BaseModel):
+    article_name: str
+    purchase_date: date
+    amount: Decimal
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+class ExpenseResponse(BaseModel):
+    id: int
+    user_id: int
+    article_name: str
+    purchase_date: datetime
+    amount: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Sale Schemas
 class SaleBase(BaseModel):
     purchase_id: int

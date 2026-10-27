@@ -31,3 +31,7 @@ Thumbs.db
 
 ## Data
 *.csv
+
+# python cache files
+__pycache__/
+*.pyc

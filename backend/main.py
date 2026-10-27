@@ -372,6 +372,7 @@ app.add_middleware(
 app.include_router(routes.auth.router)
 app.include_router(routes.users.router)
 app.include_router(routes.purchases.router)
+app.include_router(routes.expenses.router)
 app.include_router(routes.sales.router)
 app.include_router(routes.estimations.router)
 app.include_router(routes.analytics.router)
