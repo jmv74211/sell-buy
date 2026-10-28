@@ -183,12 +183,13 @@ def get_dashboard_stats(
     # SALDO = RECUPERACIÓN TOTAL PREVISTA - TOTAL GASTADO
     balance = total_expected_recovery - total_spent - total_general_expenses
 
-    # BENEFICIO REALIZADO = SUM(REVENDIDO POR - PRECIO COMPRA) for sold items
+    # BENEFICIO REALIZADO = SUM(GANANCIA NETA) for sold items.
+    # Sales without actual_profit are excluded from the net-profit total.
     realized_profit = Decimal(0)
     for s in sales:
-        p = purchases_by_id.get(s.purchase_id)
-        if p:
-            realized_profit += Decimal(str(s.amount)) - Decimal(str(p.amount))
+        estimation = estimations_by_purchase.get(s.purchase_id)
+        if estimation and estimation.actual_profit is not None:
+            realized_profit += Decimal(str(estimation.actual_profit))
 
     # BENEFICIO PENDIENTE = SUM(GANANCIA ESTIMADA) for pending items
     # Uses stored estimated_profit (= GANANCIA ESTIMADA from CSV) to match the CSV
